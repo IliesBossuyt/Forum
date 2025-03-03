@@ -1,4 +1,4 @@
-package server
+package database
 
 import (
 	"database/sql"
@@ -24,7 +24,7 @@ func InitDatabase() {
 		log.Fatal("Impossible de se connecter à la base de données :", err)
 	}
 
-	log.Println("📌 Connexion SQLite réussie !")
+	log.Println("Connexion SQLite réussie !")
 
 	// Créer les tables
 	createTables()
@@ -44,6 +44,4 @@ func createTables() {
 	if err != nil {
 		log.Fatal("Erreur lors de la création des tables :", err)
 	}
-
-	log.Println("📌 Tables créées ou retrouvées avec succès !")
 }

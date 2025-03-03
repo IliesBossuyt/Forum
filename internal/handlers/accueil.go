@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"html/template"
@@ -9,7 +9,7 @@ func Accueil(w http.ResponseWriter, r *http.Request) {
 	// Correction du chemin du template
 	tmpl := template.Must(template.ParseFiles("public/template/accueil.html"))
 
-	data := Forum{}
+	data := struct{}{}
 
 	tmpl.Execute(w, data)
 

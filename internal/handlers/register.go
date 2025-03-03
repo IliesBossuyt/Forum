@@ -1,8 +1,10 @@
-package server
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"Forum/internal/models"
 )
 
 // Enregistrement (Register)
@@ -23,12 +25,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = CreateUser(user.Username, user.Email, user.Password)
+		err = models.CreateUser(user.Username, user.Email, user.Password)
 		if err != nil {
 			http.Error(w, "Erreur lors de l'inscription", http.StatusInternalServerError)
 			return
 		}
 
-		w.Write([]byte("✅ Inscription réussie !"))
+		w.Write([]byte("Inscription réussie !"))
 	}
 }

@@ -8,7 +8,7 @@
         function loginUser(event) {
             event.preventDefault();
             let data = {
-                email: document.getElementById("email").value,
+                identifier: document.getElementById("identifier").value, // Peut être email ou username
                 password: document.getElementById("password").value
             };
 
@@ -21,7 +21,7 @@
             .then(text => {
                 document.getElementById("message").innerText = text;
                 if (text.includes("réussie")) {
-                    setTimeout(() => window.location.href = "/profile", 2000);
+                    setTimeout(() => window.location.href = "/profile", 500);
                 }
             })
             .catch(error => console.error("Erreur:", error));
@@ -31,8 +31,8 @@
 <body>
     <h2>Connexion</h2>
     <form onsubmit="loginUser(event)">
-        <label>Email :</label><br>
-        <input type="email" id="email" required><br><br>
+        <label>Email ou Nom d'utilisateur :</label><br>
+        <input type="text" id="identifier" required><br><br>
 
         <label>Mot de passe :</label><br>
         <input type="password" id="password" required><br><br>
