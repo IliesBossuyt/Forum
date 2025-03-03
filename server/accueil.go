@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (forum *Forum) Accueil(w http.ResponseWriter, r *http.Request) {
+func Accueil(w http.ResponseWriter, r *http.Request) {
 	// Correction du chemin du template
 	tmpl := template.Must(template.ParseFiles("public/template/accueil.html"))
 

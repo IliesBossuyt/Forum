@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-	server.Router(&server.Forum{})
+	var forum server.Forum
+	server.Router(&forum)
 }
