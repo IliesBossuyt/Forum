@@ -1,19 +1,15 @@
-version: '3.8'
-
+version: "3.9"
 services:
   db:
     image: mysql:8.0
-    container_name: my_mysql
+    container_name: my-forum-db
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: forum_db
-      MYSQL_USER: forum_user
-      MYSQL_PASSWORD: forum_pass
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: forumuser
+      MYSQL_PASSWORD: forumpassword
+      MYSQL_DATABASE: forumdb
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
-    restart: unless-stopped
-
-volumes:
-  db_data:
+      - ./mysql_data:/var/lib/mysql

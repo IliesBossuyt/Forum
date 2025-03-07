@@ -1,14 +1,11 @@
-# On part de l'image Alpine
-FROM alpine:latest
+# Utilise l'image officielle MySQL
+FROM mysql:8.0
 
-# Installer sqlite
-RUN apk add --no-cache sqlite
+# Variables d'environnement pour init
+ENV MYSQL_ROOT_PASSWORD=root
+ENV MYSQL_USER=forumuser
+ENV MYSQL_PASSWORD=forumpassword
+ENV MYSQL_DATABASE=forumdb
 
-# Définir un dossier de travail
-WORKDIR /db
-
-# Par défaut, on lance la CLI sqlite3
-ENTRYPOINT ["sqlite3"]
-
-# Commande par défaut (pas d'argument => pas de DB)
-CMD []
+# Exposer le port MySQL
+EXPOSE 3306

@@ -1,47 +1,43 @@
 package database
 
 import (
-	"database/sql"
-	"log"
+    "database/sql"
+    "log"
 
-	_ "github.com/mattn/go-sqlite3"
+    _ "github.com/go-sql-driver/mysql"
 )
-
 
 var DB *sql.DB
 
-// Fonction pour initialiser la base de données
 func InitDatabase() {
-	var err error
-	DB, err = sql.Open("sqlite3", "forum.db")
-	if err != nil {
-		log.Fatal("Erreur de connexion à SQLite :", err)
-	}
+    var err error
+    dsn := "forumuser:forumpassword@tcp(127.0.0.1:3306)/forumdb?charset=utf8mb4&parseTime=True&loc=Local"
 
-	// Vérifier la connexion
-	err = DB.Ping()
-	if err != nil {
-		log.Fatal("Impossible de se connecter à la base de données :", err)
-	}
+    DB, err = sql.Open("mysql", dsn)
+    if err != nil {
+        log.Fatal("Erreur de connexion MySQL :", err)
+    }
 
-	log.Println("Connexion SQLite réussie !")
+    if err = DB.Ping(); err != nil {
+        log.Fatal("Impossible de se connecter à MySQL :", err)
+    }
 
-	// Créer les tables
-	createTables()
+    log.Println("Connexion MySQL réussie !")
+    createTables()
 }
 
 func createTables() {
-	query := `
-	CREATE TABLE IF NOT EXISTS users (
-		id TEXT PRIMARY KEY,
-		username TEXT UNIQUE NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		password TEXT NOT NULL,
-		role TEXT DEFAULT 'user'
-	);
-	`
-	_, err := DB.Exec(query)
-	if err != nil {
-		log.Fatal("Erreur lors de la création des tables :", err)
-	}
+    query := `
+    CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(36) PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'user'
+    ) DEFAULT CHARSET=utf8mb4;`
+    
+    _, err := DB.Exec(query)
+    if err != nil {
+        log.Fatal("Erreur lors de la création des tables :", err)
+    }
 }
