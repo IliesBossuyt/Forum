@@ -11,14 +11,20 @@ type Post struct {
 	Content   string
 	Image     string
 	CreatedAt string
+	Likes     int
+	Dislikes  int
 }
 
 // Récupérer tous les posts
 func GetAllPosts() ([]Post, error) {
 	rows, err := database.DB.Query(`
-		SELECT posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at 
-		FROM posts 
-		JOIN users ON posts.user_id = users.id 
+		SELECT posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at,
+		       COALESCE(SUM(CASE WHEN likes.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
+		       COALESCE(SUM(CASE WHEN likes.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		LEFT JOIN likes ON posts.id = likes.post_id
+		GROUP BY posts.id
 		ORDER BY posts.created_at DESC
 	`)
 	if err != nil {
@@ -29,7 +35,7 @@ func GetAllPosts() ([]Post, error) {
 	var posts []Post
 	for rows.Next() {
 		var post Post
-		err := rows.Scan(&post.ID, &post.UserID, &post.Username, &post.Content, &post.Image, &post.CreatedAt)
+		err := rows.Scan(&post.ID, &post.UserID, &post.Username, &post.Content, &post.Image, &post.CreatedAt, &post.Likes, &post.Dislikes)
 		if err != nil {
 			return nil, err
 		}

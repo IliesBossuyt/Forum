@@ -23,7 +23,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔹 Récupérer le userID à partir du token de session
+	// Récupérer le userID à partir du token de session
 	userAgent := r.UserAgent()
 	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent)
 	if !valid {
@@ -32,14 +32,14 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔹 Vérification du contenu du post
+	// Vérification du contenu du post
 	content := r.FormValue("content")
 	if content == "" {
 		http.Error(w, "Le message ne peut pas être vide", http.StatusBadRequest)
 		return
 	}
 
-	// 🔹 Gestion de l'upload d'image
+	// Gestion de l'upload d'image
 	var imageName string
 	file, handler, err := r.FormFile("image")
 	if err == nil {
@@ -55,13 +55,13 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		_, err = outFile.ReadFrom(file)
 	}
 
-	// 🔹 Insérer le post dans la base de données
+	// Insérer le post dans la base de données
 	err = models.InsertPost(userID, content, imageName)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du post", http.StatusInternalServerError)
 		return
 	}
 
-	// 🔹 Rediriger vers /home après la publication
+	// Rediriger vers /home après la publication
 	http.Redirect(w, r, "/home", http.StatusSeeOther)
 }

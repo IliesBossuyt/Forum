@@ -1,0 +1,8 @@
+button.active {
+    background-color: #4CAF50; /* Vert pour les likes */
+    color: white;
+}
+
+button.active:hover {
+    background-color: #45a049;
+}

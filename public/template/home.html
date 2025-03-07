@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forum</title>
+    <script>
+        function likePost(postID, value) {
+            fetch('/like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
+            })
+            .then(response => response.json()) // Récupérer la réponse JSON
+            .then(data => {
+                if (data.success) {
+                    // Mettre à jour les valeurs sans recharger la page
+                    document.getElementById(`likes-${postID}`).innerText = data.likes;
+                    document.getElementById(`dislikes-${postID}`).innerText = data.dislikes;
+                } else {
+                    alert("Erreur : " + data.message);
+                }
+            })
+            .catch(error => console.error("Erreur lors du like/dislike :", error));
+        }
+    </script>
+    
 </head>
 <body>
     <h2>Bienvenue sur le Forum</h2>
@@ -16,13 +37,19 @@
 
     <h3>Publications récentes</h3>
     {{range .}}
-        <div>
+        <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
             <p><strong>Posté par :</strong> {{.Username}}</p>
             <p>{{.Content}}</p>
             {{if .Image}}
                 <img src="/static/images/{{.Image}}" alt="Image postée" width="200">
             {{end}}
-            <hr>
+            
+            <!-- Affichage des likes et dislikes-->
+            <p>👍 <span id="likes-{{.ID}}">{{.Likes}}</span> | 👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></p>
+
+            <!-- Boutons de like et dislike -->
+            <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
+            <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
         </div>
     {{end}}
 

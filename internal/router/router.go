@@ -18,10 +18,11 @@ func Router() {
 	http.HandleFunc("/logout", handlers.Logout)
 	http.HandleFunc("/home", handlers.Home)
 	http.HandleFunc("/create-post", handlers.CreatePost)
+	http.HandleFunc("/like", handlers.LikePost)
+	
 
-	fs := http.FileServer(http.Dir("front/./static"))
+	fs := http.FileServer(http.Dir("public/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/forum", handlers.Accueil)
 	http.ListenAndServe(":8080", nil)
 	fmt.Println("Serveur lancé sur http://localhost:8080/")
 	// On lance le serveur local sur le port 8080
