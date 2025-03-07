@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"Forum/internal/models"
 )
@@ -10,7 +11,7 @@ import (
 // Enregistrement (Register)
 func Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		http.ServeFile(w, r, "public/template/register.html")
+		http.ServeFile(w, r, "../public/template/register.html")
 		return
 	} else if r.Method == http.MethodPost {
 		var user struct {
@@ -27,6 +28,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 		err = models.CreateUser(user.Username, user.Email, user.Password)
 		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed: users.email") {
+				http.Error(w, "L'email est déjà utilisé", http.StatusConflict)
+				return
+			} else if strings.Contains(err.Error(), "UNIQUE constraint failed: users.username") {
+				http.Error(w, "Le nom d'utilisateur est déjà pris", http.StatusConflict)
+				return
+			}
 			http.Error(w, "Erreur lors de l'inscription", http.StatusInternalServerError)
 			return
 		}

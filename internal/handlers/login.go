@@ -3,15 +3,16 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"time"
+
+	"Forum/internal/models"
+	"Forum/internal/security"
 
 	"golang.org/x/crypto/bcrypt"
-	"Forum/internal/models"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		http.ServeFile(w, r, "public/template/login.html")
+		http.ServeFile(w, r, "../public/template/login.html")
 		return
 	} else if r.Method == http.MethodPost {
 		var input struct {
@@ -39,14 +40,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Créer un cookie de session avec l'ID utilisateur
-		http.SetCookie(w, &http.Cookie{
-			Name:    "session",
-			Value:   user.ID, // On stocke directement l'ID utilisateur
-			Expires: time.Now().Add(24 * time.Hour),
-			Path:    "/",
-		})
+		security.CreateCookie(w, r, user.ID)
 
 		w.Write([]byte("Connexion réussie !"))
 	}
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	security.DeleteCookie(w)
+
+	// Rediriger vers la page de connexion
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

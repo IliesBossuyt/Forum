@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"Forum/internal/models"
+	"Forum/internal/security"
 )
 
 // Gestion de la page profil
@@ -18,22 +19,28 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Récupérer l'utilisateur via l'ID stocké dans le cookie
-	user, err := models.GetUserByID(cookie.Value)
-	if err != nil || user == nil {
-		fmt.Println("Utilisateur introuvable, suppression du cookie et redirection vers /login")
-		http.SetCookie(w, &http.Cookie{
-			Name:   "session",
-			Value:  "",
-			Path:   "/",
-			MaxAge: -1,
-		})
+	// Vérifier le token avec User-Agent et IP actuels
+	userAgent := r.UserAgent()
+	userIP := security.ExtractIP(r.RemoteAddr)
+
+
+	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent, userIP)
+	if !valid {
+		fmt.Println("Session suspecte détectée ! Suppression du cookie et redirection.")
+		security.DeleteCookie(w)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	// Charger le template `profile.html`
-	tmpl, err := template.ParseFiles("public/template/profile.html")
+	// Récupérer les infos utilisateur
+	user, err := models.GetUserByID(userID)
+	if err != nil || user == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Charger le template profile.html
+	tmpl, err := template.ParseFiles("../public/template/profile.html")
 	if err != nil {
 		http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 		return
