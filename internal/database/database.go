@@ -7,7 +7,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-
 var DB *sql.DB
 
 // Fonction pour initialiser la base de données

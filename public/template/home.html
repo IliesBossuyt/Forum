@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum</title>
+</head>
+<body>
+    <h2>Bienvenue sur le Forum</h2>
+
+    <form action="/create-post" method="POST" enctype="multipart/form-data">
+        <textarea name="content" placeholder="Écrivez votre message..." required></textarea><br>
+        <input type="file" name="image"><br>
+        <button type="submit">Publier</button>
+    </form>
+
+    <h3>Publications récentes</h3>
+    {{range .}}
+        <div>
+            <p><strong>Posté par :</strong> {{.Username}}</p>
+            <p>{{.Content}}</p>
+            {{if .Image}}
+                <img src="/static/images/{{.Image}}" alt="Image postée" width="200">
+            {{end}}
+            <hr>
+        </div>
+    {{end}}
+
+</body>
+</html>

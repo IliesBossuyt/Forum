@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"Forum/internal/handlers"
 	"Forum/internal/database"
+	"Forum/internal/handlers"
 )
 
 func Router() {
@@ -16,7 +16,8 @@ func Router() {
 	http.HandleFunc("/login", handlers.Login)
 	http.HandleFunc("/profile", handlers.Profile)
 	http.HandleFunc("/logout", handlers.Logout)
-
+	http.HandleFunc("/home", handlers.Home)
+	http.HandleFunc("/create-post", handlers.CreatePost)
 
 	fs := http.FileServer(http.Dir("front/./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))

@@ -4,56 +4,113 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"net"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-// Clé secrète pour sécuriser les tokens (À NE JAMAIS PARTAGER)
+// Clé secrète pour sécuriser les tokens
 var secretKey = []byte("super-secret-key")
 
-// Générer un token sécurisé basé sur un UUID + User-Agent + IP
-func GenerateSecureToken(userID, userAgent, userIP string) (string, error) {
-	h := hmac.New(sha256.New, secretKey)
-	data := userID + ":" + userAgent + ":" + userIP
-	h.Write([]byte(data))
-	signature := h.Sum(nil)
+// Générer un token sécurisé (UUID + Signature)
+func GenerateSecureToken(userID, userAgent string) (string, error) {
+	sessionUUID := uuid.New().String()
 
-	// Encoder UUID + signature en base64
-	token := base64.URLEncoding.EncodeToString([]byte(userID + ":" + base64.URLEncoding.EncodeToString(signature)))
+	h := hmac.New(sha256.New, secretKey)
+	data := sessionUUID + ":" + userAgent
+	h.Write([]byte(data))
+	signature := base64.URLEncoding.EncodeToString(h.Sum(nil))
+
+	token := sessionUUID + ":" + signature
+
 	return token, nil
 }
 
-// Vérifier si le token est valide
-func ValidateSecureToken(token, currentUserAgent, currentUserIP string) (string, bool) {
-	decoded, err := base64.URLEncoding.DecodeString(token)
-	if err != nil {
+// Vérifier si un token est valide (User-Agent)
+func ValidateSecureToken(token, currentUserAgent string) (string, bool) {
+	parts := splitToken(token, 2)
+	if len(parts) != 2 {
 		return "", false
 	}
 
-	// Séparer UUID et signature
-	parts := string(decoded)
-	split := splitToken(parts, 2) // Séparer UUID et signature
-	if len(split) != 2 {
-		return "", false
-	}
+	sessionUUID, receivedSignature := parts[0], parts[1]
 
-	userID, receivedSignature := split[0], split[1]
-
-	// Recalculer la signature attendue
 	h := hmac.New(sha256.New, secretKey)
-	data := userID + ":" + currentUserAgent + ":" + currentUserIP
+	data := sessionUUID + ":" + currentUserAgent
 	h.Write([]byte(data))
 	expectedSignature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
-	// Vérifier si la signature est correcte
 	if hmac.Equal([]byte(receivedSignature), []byte(expectedSignature)) {
+
+		// On récupère `userID` depuis la session en base
+		userID, err := GetUserIDFromSession(sessionUUID)
+		if err != nil {
+			return "", false
+		}
 		return userID, true
 	}
+
 	return "", false
 }
 
-// Séparer les parties du token
+// Créer un cookie sécurisé
+func CreateCookie(w http.ResponseWriter, r *http.Request, userID string) error {
+	userAgent := r.UserAgent()
+
+	// Générer le token sécurisé
+	token, err := GenerateSecureToken(userID, userAgent)
+	if err != nil {
+		return err
+	}
+
+	expirationTime := time.Now().Add(24 * time.Hour)
+
+	// Insérer en base
+	sessionUUID := ExtractUUID(token)
+	err = CreateSession(sessionUUID, userID, userAgent, expirationTime)
+	if err != nil {
+		return err
+	}
+
+	// Stocker le cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    token,
+		Expires:  expirationTime,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+	return nil
+}
+
+// Supprimer un cookie et la session en base
+func DeleteCookie(w http.ResponseWriter, token string) {
+	// Supprimer en base
+	sessionUUID := ExtractUUID(token)
+	DeleteSession(sessionUUID)
+
+	// Supprimer le cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:   "session",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
+}
+
+// Extraire l'UUID depuis un token sécurisé
+func ExtractUUID(token string) string {
+	parts := splitToken(token, 2)
+	if len(parts) != 2 {
+		return ""
+	}
+	return parts[0]
+}
+
+// Séparer un token en parties
 func splitToken(s string, n int) []string {
 	parts := make([]string, 0, n)
 	start := 0
@@ -65,48 +122,4 @@ func splitToken(s string, n int) []string {
 	}
 	parts = append(parts, s[start:])
 	return parts
-}
-
-// Fonction pour extraire uniquement l'IP (sans le port)
-func ExtractIP(remoteAddr string) string {
-	// Si l'adresse contient ":", il y a un port → on le coupe
-	host, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return remoteAddr // Retourne l'adresse originale si erreur
-	}
-	return host
-}
-
-func CreateCookie(w http.ResponseWriter, r *http.Request, userID string) {
-	// Récupérer l'empreinte du navigateur (User-Agent + IP)
-	userAgent := r.UserAgent()
-	userIP := ExtractIP(r.RemoteAddr)
-
-	// Générer un token sécurisé lié à cet appareil
-	token, err := GenerateSecureToken(userID, userAgent, userIP)
-	if err != nil {
-		http.Error(w, "Erreur création token sécurisé", http.StatusInternalServerError)
-		return
-	}
-
-	// 🔹 Créer un cookie sécurisé
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-}
-
-func DeleteCookie(w http.ResponseWriter) {
-	// Supprimer le cookie de session
-	http.SetCookie(w, &http.Cookie{
-		Name:   "session",
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
-	})
 }

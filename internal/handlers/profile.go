@@ -19,22 +19,19 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifier le token avec User-Agent et IP actuels
 	userAgent := r.UserAgent()
-	userIP := security.ExtractIP(r.RemoteAddr)
 
-
-	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent, userIP)
+	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent)
 	if !valid {
-		fmt.Println("Session suspecte détectée ! Suppression du cookie et redirection.")
-		security.DeleteCookie(w)
+		security.DeleteCookie(w, cookie.Value)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		fmt.Println("Token non valide, redirection vers /login")
 		return
 	}
 
-	// Récupérer les infos utilisateur
 	user, err := models.GetUserByID(userID)
 	if err != nil || user == nil {
+		fmt.Println("Utilisateur non trouvé, redirection vers /login", userID)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}

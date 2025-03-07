@@ -47,8 +47,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	security.DeleteCookie(w)
+	cookie, err := r.Cookie("session")
+	if err == nil {
+		security.DeleteCookie(w, cookie.Value)
+	}
 
-	// Rediriger vers la page de connexion
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
