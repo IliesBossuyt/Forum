@@ -4,27 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forum</title>
-    <script>
-        function likePost(postID, value) {
-            fetch('/like', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
-            })
-            .then(response => response.json()) // Récupérer la réponse JSON
-            .then(data => {
-                if (data.success) {
-                    // Mettre à jour les valeurs sans recharger la page
-                    document.getElementById(`likes-${postID}`).innerText = data.likes;
-                    document.getElementById(`dislikes-${postID}`).innerText = data.dislikes;
-                } else {
-                    alert("Erreur : " + data.message);
-                }
-            })
-            .catch(error => console.error("Erreur lors du like/dislike :", error));
-        }
-    </script>
-    
 </head>
 <body>
     <h2>Bienvenue sur le Forum</h2>
@@ -39,7 +18,7 @@
     {{range .}}
         <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
             <p><strong>Posté par :</strong> {{.Username}}</p>
-            <p>{{.Content}}</p>
+            <p id="content-{{.ID}}">{{.Content}}</p>
             {{if .Image}}
                 <img src="/static/images/{{.Image}}" alt="Image postée" width="200">
             {{end}}
@@ -50,8 +29,77 @@
             <!-- Boutons de like et dislike -->
             <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
             <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+
+            <!-- Bouton Modifier (si l'utilisateur est l'auteur du post) -->
+            {{if eq .UserID .CurrentUserID}}
+                <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
+            {{end}}
         </div>
     {{end}}
 
+    <!-- Formulaire de modification de post (caché par défaut) -->
+    <div id="edit-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Modifier le post</h3>
+        <textarea id="edit-content" rows="3" style="width:100%;"></textarea>
+        <input type="hidden" id="edit-post-id">
+        <br>
+        <button onclick="submitEdit()">Enregistrer</button>
+        <button onclick="closeEditForm()">Annuler</button>
+    </div>
 </body>
 </html>
+
+
+<script>
+function likePost(postID, value) {
+    fetch('/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
+    })
+    .then(response => response.json()) // Récupérer la réponse JSON
+    .then(data => {
+        if (data.success) {
+            // Mettre à jour les valeurs sans recharger la page
+            document.getElementById(`likes-${postID}`).innerText = data.likes;
+            document.getElementById(`dislikes-${postID}`).innerText = data.dislikes;
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    })
+    .catch(error => console.error("Erreur lors du like/dislike :", error));
+}
+
+
+function editPost(postID) {
+    let currentContent = document.getElementById(`content-${postID}`).innerText; // ✅ Ça fonctionne maintenant
+    document.getElementById("edit-content").value = currentContent;
+    document.getElementById("edit-post-id").value = postID;
+    document.getElementById("edit-form").style.display = "block";
+}
+
+function closeEditForm() {
+    document.getElementById("edit-form").style.display = "none";
+}
+
+function submitEdit() {
+    let postID = document.getElementById("edit-post-id").value;
+    let newContent = document.getElementById("edit-content").value;
+
+    fetch('/edit-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: parseInt(postID, 10), content: newContent })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`content-${postID}`).innerText = newContent;
+            closeEditForm();
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    })
+    .catch(error => console.error("Erreur lors de la modification :", error));
+}
+</script>

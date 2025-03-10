@@ -2,8 +2,6 @@ module Forum
 
 go 1.23.0
 
-toolchain go1.23.7
-
 require (
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/google/uuid v1.6.0

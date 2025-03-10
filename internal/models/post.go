@@ -5,14 +5,15 @@ import (
 )
 
 type Post struct {
-	ID        int
-	UserID    string
-	Username  string
-	Content   string
-	Image     string
-	CreatedAt string
-	Likes     int
-	Dislikes  int
+	ID            int
+	UserID        string
+	Username      string
+	Content       string
+	Image         string
+	CreatedAt     string
+	Likes         int
+	Dislikes      int
+	CurrentUserID string
 }
 
 // Récupérer tous les posts
@@ -46,5 +47,20 @@ func GetAllPosts() ([]Post, error) {
 
 func InsertPost(userID, content, image string) error {
 	_, err := database.DB.Exec("INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)", userID, content, image)
+	return err
+}
+
+func GetPostByID(postID int) (*Post, error) {
+	var post Post
+	err := database.DB.QueryRow("SELECT id, user_id, content FROM posts WHERE id = ?", postID).
+		Scan(&post.ID, &post.UserID, &post.Content)
+	if err != nil {
+		return nil, err
+	}
+	return &post, nil
+}
+
+func UpdatePostContent(postID int, content string) error {
+	_, err := database.DB.Exec("UPDATE posts SET content = ? WHERE id = ?", content, postID)
 	return err
 }

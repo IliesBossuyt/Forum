@@ -19,6 +19,7 @@ func Router() {
 	http.HandleFunc("/home", handlers.Home)
 	http.HandleFunc("/create-post", handlers.CreatePost)
 	http.HandleFunc("/like", handlers.LikePost)
+	http.HandleFunc("/edit-post", handlers.EditPost)
 	
 
 	fs := http.FileServer(http.Dir("public/static"))

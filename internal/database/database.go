@@ -22,21 +22,4 @@ func InitDatabase() {
     }
 
     log.Println("Connexion MySQL réussie !")
-    createTables()
-}
-
-func createTables() {
-    query := `
-    CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR(36) PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        email VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL DEFAULT 'user'
-    ) DEFAULT CHARSET=utf8mb4;`
-    
-    _, err := DB.Exec(query)
-    if err != nil {
-        log.Fatal("Erreur lors de la création des tables :", err)
-    }
 }
