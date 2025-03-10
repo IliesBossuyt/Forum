@@ -1,9 +1,9 @@
 package main
 
 import (
-	"Forum/internal/router" // Assure-toi que le module est bien "Forum"
+	"Forum/internal/router"
 )
 
 func main() {
-	router.Router() // Appel correct de la fonction Router()
+	router.Router()
 }
