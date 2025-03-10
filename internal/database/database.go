@@ -10,18 +10,12 @@ import (
 var DB *sql.DB
 
 func InitDatabase() {
-    var err error
     dsn := "forumuser:forumpassword@tcp(127.0.0.1:3306)/forumdb?charset=utf8mb4&parseTime=True&loc=Local"
-
+    var err error
     DB, err = sql.Open("mysql", dsn)
     if err != nil {
         log.Fatal("Erreur de connexion MySQL :", err)
     }
-	var err error
-	DB, err = sql.Open("sqlite3", "../forum.db")
-	if err != nil {
-		log.Fatal("Erreur de connexion à SQLite :", err)
-	}
 
     if err = DB.Ping(); err != nil {
         log.Fatal("Impossible de se connecter à MySQL :", err)
@@ -46,4 +40,3 @@ func createTables() {
         log.Fatal("Erreur lors de la création des tables :", err)
     }
 }
-
