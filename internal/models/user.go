@@ -57,11 +57,11 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// 🔹 Récupérer un utilisateur par ID
+// Récupérer un utilisateur par ID
 func GetUserByID(userID string) (*User, error) {
 	var user User
-	err := database.DB.QueryRow("SELECT id, username, email, role FROM users WHERE id = ?", userID).
-		Scan(&user.ID, &user.Username, &user.Email, &user.Role)
+	err := database.DB.QueryRow("SELECT id, username, email, password, role FROM users WHERE id = ?", userID).
+		Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role)
 
 	if err != nil {
 		return nil, err
@@ -93,4 +93,11 @@ func GetUserByIdentifier(identifier string) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+// Modifier le profil utilisateur
+func UpdateUserProfile(userID, username, email, password string) error {
+	_, err := database.DB.Exec("UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?",
+		username, email, password, userID)
+	return err
 }
