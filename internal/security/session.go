@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-// 🔹 Créer une session en base
-func CreateSession(sessionUUID, userID, userAgent string, expiresAt time.Time) error {
+// Créer une session en base
+func CreateSession(sessionUUID, userID, userAgent, role string, expiresAt time.Time) error {
 	_, err := database.DB.Exec(
-		"INSERT INTO sessions (token, user_id, user_agent, expires_at) VALUES (?, ?, ?, ?)",
-		sessionUUID, userID, userAgent, expiresAt,
+		"INSERT INTO sessions (token, user_id, user_agent, role, expires_at) VALUES (?, ?, ?, ?, ?)",
+		sessionUUID, userID, userAgent, role, expiresAt,
 	)
 	return err
 }
@@ -20,11 +20,11 @@ func DeleteSession(sessionUUID string) error {
 	return err
 }
 
-func GetUserIDFromSession(sessionUUID string) (string, error) {
-	var userID string
-	err := database.DB.QueryRow("SELECT user_id FROM sessions WHERE token = ?", sessionUUID).Scan(&userID)
+func GetUserIDFromSession(sessionUUID string) (string, string, error) {
+	var userID, role string
+	err := database.DB.QueryRow("SELECT user_id, role FROM sessions WHERE token = ?", sessionUUID).Scan(&userID, &role)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return userID, nil
+	return userID, role, nil
 }

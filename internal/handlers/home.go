@@ -12,11 +12,11 @@ import (
 func Home(w http.ResponseWriter, r *http.Request) {
 	// Vérifier si l'utilisateur est connecté (pas obligatoire)
 	cookie, err := r.Cookie("session")
-	var currentUserID string
+	var currentUserID, currentUserRole string
 
-	if err == nil { // Si le cookie existe, on tente de récupérer l'ID utilisateur
+	if err == nil { // Si le cookie existe, on tente de récupérer l'ID utilisateur et le rôle
 		userAgent := r.UserAgent()
-		currentUserID, _ = security.ValidateSecureToken(cookie.Value, userAgent)
+		currentUserID, currentUserRole, _ = security.ValidateSecureToken(cookie.Value, userAgent)
 	}
 
 	posts, err := models.GetAllPosts()
@@ -28,6 +28,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	// Passer CurrentUserID à chaque post
 	for i := range posts {
 		posts[i].CurrentUserID = currentUserID
+		posts[i].CurrentUserRole = currentUserRole
 	}
 
 	tmpl, err := template.ParseFiles("../public/template/home.html")

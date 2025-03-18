@@ -22,7 +22,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userAgent := r.UserAgent()
-	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent)
+	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
 	if !valid {
 		security.DeleteCookie(w, cookie.Value)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)

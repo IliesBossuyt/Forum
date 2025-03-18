@@ -21,7 +21,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	userAgent := r.UserAgent()
 
-	userID, valid := security.ValidateSecureToken(cookie.Value, userAgent)
+	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
 	if !valid {
 		security.DeleteCookie(w, cookie.Value)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -42,7 +42,6 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 		return
 	}
-
 	// Exécuter le template avec les données de l'utilisateur
 	tmpl.Execute(w, user)
 }

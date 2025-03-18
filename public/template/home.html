@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/home.css">
     <title>Forum</title>
 </head>
 <body>
     <h2>Bienvenue sur le Forum</h2>
 
     <form action="/create-post" method="POST" enctype="multipart/form-data">
-        <textarea name="content" placeholder="Écrivez votre message..." required></textarea><br>
-        <input type="file" name="image"><br>
+        <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
+        <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
         <button type="submit">Publier</button>
     </form>
 
     <h3>Publications récentes</h3>
     {{range .}}
-        <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
+        <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
             <p><strong>Posté par :</strong> {{.Username}}</p>
             <p id="content-{{.ID}}">{{.Content}}</p>
             {{if .Image}}
-                <img src="/static/images/{{.Image}}" alt="Image postée" width="200">
+                <img src="/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/image/{{.ID}}')">
             {{end}}
             
             <!-- Affichage des likes et dislikes-->
@@ -30,12 +31,23 @@
             <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
             <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
 
-            <!-- Bouton Modifier (si l'utilisateur est l'auteur du post) -->
+            <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
             {{if eq .UserID .CurrentUserID}}
                 <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
             {{end}}
+
+            <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
+            {{if or (eq .UserID .CurrentUserID) (eq .CurrentUserRole "admin")}}
+            <button onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
+            {{end}}
         </div>
     {{end}}
+
+    <!-- Fenêtre modale pour afficher les images en grand -->
+    <div id="imageModal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img id="modalContent">
+    </div>
 
     <!-- Formulaire de modification de post (caché par défaut) -->
     <div id="edit-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
@@ -43,9 +55,25 @@
         <textarea id="edit-content" rows="3" style="width:100%;"></textarea>
         <input type="hidden" id="edit-post-id">
         <br>
+        <label for="edit-image">Changer l'image :</label>
+        <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
+        <br>
+        <label><input type="checkbox" id="delete-image"> Supprimer l'image</label>
+        <br>
         <button onclick="submitEdit()">Enregistrer</button>
         <button onclick="closeEditForm()">Annuler</button>
     </div>
+
+    <!-- Fenêtre modale pour confirmer la suppression (style similaire à la modale d'édition) -->
+    <div id="delete-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Confirmer la suppression</h3>
+        <p>Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
+        <input type="hidden" id="delete-post-id">
+        <br>
+        <button onclick="confirmDelete()">🗑 Supprimer</button>
+        <button onclick="closeDeleteForm()">Annuler</button>
+    </div>
+
 </body>
 </html>
 
@@ -70,13 +98,80 @@ function likePost(postID, value) {
     .catch(error => console.error("Erreur lors du like/dislike :", error));
 }
 
+// Ouvre la fenêtre de confirmation de suppression
+function openDeleteForm(postID) {
+    document.getElementById("delete-post-id").value = postID;
+    let modal = document.getElementById("delete-form");
+    modal.style.display = "block";
+}
+
+// Ferme la fenêtre modale de suppression
+function closeDeleteForm() {
+    let modal = document.getElementById("delete-form");
+    modal.style.display = "none";
+}
+
+// Confirme la suppression du post
+function confirmDelete() {
+    let postID = document.getElementById("delete-post-id").value;
+    deletePost(postID);
+    closeDeleteForm();
+}
+
+// Supprime le post via fetch API
+function deletePost(postID) {
+    console.log("Suppression demandée pour le post ID :", postID);
+
+    fetch('/delete-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postID })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Réponse JSON du serveur :", data);
+
+        if (data.success) {
+            console.log("Suppression réussie, tentative de suppression du post du DOM.");
+            
+            let postElement = document.getElementById(`post-${postID}`);
+            console.log("🔍 Élément HTML trouvé ?", postElement !== null);
+
+            if (postElement) {
+                postElement.remove();
+                console.log("🗑 Post supprimé du DOM.");
+            } else {
+                console.warn("Impossible de supprimer, élément introuvable dans le DOM !");
+            }
+        } else {
+            console.error("Erreur reçue du serveur :", data.message);
+            alert("Erreur : " + (data.message || "Réponse inattendue"));
+        }
+    })
+    .catch(error => {
+        console.error("Erreur JS :", error);
+        alert("Une erreur est survenue lors de la suppression.");
+    });
+}
+
+
+
+
+
+
+
 
 function editPost(postID) {
-    let currentContent = document.getElementById(`content-${postID}`).innerText; // ✅ Ça fonctionne maintenant
+    let currentContent = document.getElementById(`content-${postID}`).innerText;
     document.getElementById("edit-content").value = currentContent;
     document.getElementById("edit-post-id").value = postID;
+
+    // Décocher la case "Supprimer l'image" à chaque ouverture
+    document.getElementById("delete-image").checked = false;
+
     document.getElementById("edit-form").style.display = "block";
 }
+
 
 function closeEditForm() {
     document.getElementById("edit-form").style.display = "none";
@@ -85,16 +180,65 @@ function closeEditForm() {
 function submitEdit() {
     let postID = document.getElementById("edit-post-id").value;
     let newContent = document.getElementById("edit-content").value;
+    let deleteImage = document.getElementById("delete-image").checked;
+    let formData = new FormData();
+    formData.append("post_id", postID);
+    formData.append("content", newContent);
+    formData.append("delete_image", deleteImage);
+
+    let fileInput = document.getElementById("edit-image");
+    if (fileInput.files.length > 0) {
+        formData.append("image", fileInput.files[0]);
+    }
 
     fetch('/edit-post', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: parseInt(postID, 10), content: newContent })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Mise à jour du texte du post
             document.getElementById(`content-${postID}`).innerText = newContent;
+
+            // Récupération de l'élément image
+            let imgElement = document.querySelector(`img[src^="/image/${postID}"]`);
+
+            if (data.imageUpdated) {
+            if (!imgElement) {
+                // Si l'image n'existe pas encore, on la crée
+                imgElement = document.createElement("img");
+                imgElement.style.cursor = "pointer";
+                imgElement.width = 200;
+                imgElement.alt = "Image postée";
+                imgElement.onclick = function() { openModal(`/image/${postID}`); };
+
+                let postDiv = document.getElementById(`content-${postID}`).parentNode;
+                
+                // Insérer l'image juste après le paragraphe du contenu
+                let contentElement = document.getElementById(`content-${postID}`);
+                postDiv.insertBefore(imgElement, contentElement.nextSibling);
+            }
+
+            // Met à jour l'image avec un timestamp unique
+            imgElement.src = `/image/${postID}?t=${new Date().getTime()}`;
+            imgElement.style.display = "block";
+            } 
+            if (data.imageDeleted) {
+            let imgElement = document.querySelector(`img[src^="/image/${postID}"]`);
+
+            if (imgElement) {
+                imgElement.remove(); // Supprime l'image du DOM
+            }
+
+            // Vérifie s'il y a le texte "image postée" et le supprime
+            let textPlaceholder = document.querySelector(`#content-${postID} + p`);
+            if (textPlaceholder && textPlaceholder.innerText.includes("image postée")) {
+                textPlaceholder.remove();
+            }
+        }
+
+
             closeEditForm();
         } else {
             alert("Erreur : " + data.message);
@@ -102,4 +246,33 @@ function submitEdit() {
     })
     .catch(error => console.error("Erreur lors de la modification :", error));
 }
+
+
+
+
+function openModal(imageSrc) {
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalContent");
+
+    modalImg.src = imageSrc;
+    modal.style.display = "flex";
+    setTimeout(() => {
+        modal.style.opacity = "1";
+        modalImg.style.transform = "scale(1)";
+    }, 10);
+}
+
+function closeModal() {
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalContent");
+
+    modal.style.opacity = "0";
+    modalImg.style.transform = "scale(0.5)";
+    setTimeout(() => {
+        modal.style.display = "none";
+    }, 300);
+}
+
+
+
 </script>

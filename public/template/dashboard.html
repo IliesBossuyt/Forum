@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panneau Admin</title>
+</head>
+<body>
+    <h2>Panneau d'administration</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Nom d'utilisateur</th>
+            <th>Rôle</th>
+            <th>Action</th>
+        </tr>
+        {{range .Users}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.Username}}</td>
+            <td id="role-{{.ID}}">{{.Role}}</td>
+            <td>
+                <button id="btn-{{.ID}}" data-userid="{{.ID}}" data-role="{{.Role}}" class="role-btn">
+                    {{if eq .Role "user"}}Promouvoir Admin{{else}}Rétrograder User{{end}}
+                </button>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Sélectionne tous les boutons avec la classe "role-btn"
+        document.querySelectorAll(".role-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let userID = this.getAttribute("data-userid");
+                let currentRole = this.getAttribute("data-role");
+                let newRole = currentRole === "user" ? "admin" : "user";
+
+                fetch('/change-role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userID, role: newRole })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mettre à jour le rôle dans le tableau
+                        document.getElementById(`role-${userID}`).innerText = newRole;
+
+                        // Mettre à jour le bouton
+                        this.innerText = newRole === "admin" ? "Rétrograder User" : "Promouvoir Admin";
+                        this.setAttribute("data-role", newRole);
+                    } else {
+                        alert("Erreur : " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur :", error);
+                    alert("Une erreur est survenue lors de la modification du rôle.");
+                });
+            });
+        });
+    });
+    </script>
+</body>
+</html>

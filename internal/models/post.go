@@ -5,15 +5,16 @@ import (
 )
 
 type Post struct {
-	ID            int
-	UserID        string
-	Username      string
-	Content       string
-	Image         string
-	CreatedAt     string
-	Likes         int
-	Dislikes      int
-	CurrentUserID string
+	ID              int
+	UserID          string
+	Username        string
+	Content         string
+	Image           []byte
+	CreatedAt       string
+	Likes           int
+	Dislikes        int
+	CurrentUserID   string
+	CurrentUserRole string
 }
 
 // Récupérer tous les posts
@@ -45,7 +46,7 @@ func GetAllPosts() ([]Post, error) {
 	return posts, nil
 }
 
-func InsertPost(userID, content, image string) error {
+func InsertPost(userID, content string, image []byte) error {
 	_, err := database.DB.Exec("INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)", userID, content, image)
 	return err
 }
@@ -60,7 +61,41 @@ func GetPostByID(postID int) (*Post, error) {
 	return &post, nil
 }
 
-func UpdatePostContent(postID int, content string) error {
+// Modifier un post
+func UpdatePost(postID int, content string, imageData []byte, deleteImage bool) error {
+	if deleteImage {
+		_, err := database.DB.Exec("UPDATE posts SET content = ?, image = NULL WHERE id = ?", content, postID)
+		return err
+	}
+
+	if len(imageData) > 0 {
+		_, err := database.DB.Exec("UPDATE posts SET content = ?, image = ? WHERE id = ?", content, imageData, postID)
+		return err
+	}
+
 	_, err := database.DB.Exec("UPDATE posts SET content = ? WHERE id = ?", content, postID)
+	return err
+}
+
+// Récupérer l'image d'un post
+func GetPostImage(postID int) ([]byte, error) {
+	var imageData []byte
+	err := database.DB.QueryRow("SELECT image FROM posts WHERE id = ?", postID).Scan(&imageData)
+	if err != nil {
+		return nil, err
+	}
+	return imageData, nil
+}
+
+// Supprimer un post (et ses dépendances)
+func DeletePost(postID int) error {
+	// Supprimer les likes associés au post
+	_, err := database.DB.Exec("DELETE FROM likes WHERE post_id = ?", postID)
+	if err != nil {
+		return err
+	}
+
+	// Supprimer le post lui-même
+	_, err = database.DB.Exec("DELETE FROM posts WHERE id = ?", postID)
 	return err
 }

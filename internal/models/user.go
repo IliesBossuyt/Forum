@@ -60,8 +60,8 @@ func GetUserByEmail(email string) (*User, error) {
 // 🔹 Récupérer un utilisateur par ID
 func GetUserByID(userID string) (*User, error) {
 	var user User
-	err := database.DB.QueryRow("SELECT id, username, email FROM users WHERE id = ?", userID).
-		Scan(&user.ID, &user.Username, &user.Email)
+	err := database.DB.QueryRow("SELECT id, username, email, role FROM users WHERE id = ?", userID).
+		Scan(&user.ID, &user.Username, &user.Email, &user.Role)
 
 	if err != nil {
 		return nil, err
@@ -83,11 +83,14 @@ func GetUserByUsername(username string) (*User, error) {
 
 func GetUserByIdentifier(identifier string) (*User, error) {
 	var user User
-	err := database.DB.QueryRow("SELECT id, username, email, password FROM users WHERE username = ? OR email = ?", identifier, identifier).
-		Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+	err := database.DB.QueryRow(
+		"SELECT id, username, password, role FROM users WHERE username = ? OR email = ?",
+		identifier, identifier,
+	).Scan(&user.ID, &user.Username, &user.Password, &user.Role)
 
 	if err != nil {
 		return nil, err
 	}
+
 	return &user, nil
 }

@@ -40,7 +40,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		security.CreateCookie(w, r, user.ID)
+		// Stocker l'ID et le rôle dans le cookie
+		err = security.CreateCookie(w, r, user.ID, user.Role)
+		if err != nil {
+			http.Error(w, "Erreur lors de la création du cookie", http.StatusInternalServerError)
+			return
+		}
 
 		w.Write([]byte("Connexion réussie !"))
 	}

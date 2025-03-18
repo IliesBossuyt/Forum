@@ -6,6 +6,7 @@ import (
 
 	"Forum/internal/database"
 	"Forum/internal/handlers"
+	"Forum/internal/security"
 )
 
 func Router() {
@@ -20,9 +21,12 @@ func Router() {
 	http.HandleFunc("/create-post", handlers.CreatePost)
 	http.HandleFunc("/like", handlers.LikePost)
 	http.HandleFunc("/edit-post", handlers.EditPost)
-	
+	http.HandleFunc("/image/{id}", handlers.GetImage)
+	http.HandleFunc("/dashboard", security.AdminOnly(handlers.DashboardHandler))
+	http.HandleFunc("/change-role", security.AdminOnly(handlers.ChangeUserRole))
+	http.HandleFunc("/delete-post", security.AdminOnly(handlers.DeletePost))
 
-	fs := http.FileServer(http.Dir("public/static"))
+	fs := http.FileServer(http.Dir("../public/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.ListenAndServe(":8080", nil)
 	fmt.Println("Serveur lancé sur http://localhost:8080/")
