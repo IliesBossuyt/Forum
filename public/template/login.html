@@ -33,13 +33,44 @@
     <form onsubmit="loginUser(event)">
         <label>Email ou Nom d'utilisateur :</label><br>
         <input type="text" id="identifier" required><br><br>
-
+    
         <label>Mot de passe :</label><br>
         <input type="password" id="password" required><br><br>
-
+    
         <button type="submit">Se connecter</button>
     </form>
+    
+    <!-- Connexion avec Google -->
+    <button onclick="openGoogleLogin()">Se connecter avec Google</button>
 
+    <!-- Connexion avec Github -->
+    <button onclick="openGitHubLogin()">Se connecter avec GitHub</button>
+
+    
     <p id="message"></p>
+    
 </body>
 </html>
+<script>
+    function openGoogleLogin() {
+        const width = 600, height = 700;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+    
+        window.open(
+            "http://localhost:8080/auth/google/login",  // L'URL d'authentification Google
+            "GoogleLoginPopup",
+            `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+        );
+    }
+
+    function openGitHubLogin() {
+    const width = 600, height = 700;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
+
+    window.open("/auth/github/login", "GitHub Login",
+        `width=${width},height=${height},top=${top},left=${left}`);
+}
+
+    </script>

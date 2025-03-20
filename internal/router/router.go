@@ -24,7 +24,11 @@ func Router() {
 	http.HandleFunc("/image/{id}", handlers.GetImage)
 	http.HandleFunc("/dashboard", security.AdminOnly(handlers.DashboardHandler))
 	http.HandleFunc("/change-role", security.AdminOnly(handlers.ChangeUserRole))
-	http.HandleFunc("/delete-post", security.AdminOnly(handlers.DeletePost))
+	http.HandleFunc("/delete-post", handlers.DeletePost)
+	http.HandleFunc("/auth/google/login", security.GoogleLogin)
+	http.HandleFunc("/auth/google/callback", security.GoogleCallback)
+	http.HandleFunc("/auth/github/login", security.GitHubLogin)
+	http.HandleFunc("/auth/github/callback", security.GitHubCallback)
 
 	fs := http.FileServer(http.Dir("../public/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))

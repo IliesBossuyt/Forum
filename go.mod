@@ -8,4 +8,9 @@ require (
 	golang.org/x/crypto v0.35.0
 )
 
-require filippo.io/edwards25519 v1.1.0 // indirect
+require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
+)

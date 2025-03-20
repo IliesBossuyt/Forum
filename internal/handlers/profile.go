@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+
 	"html/template"
 	"net/http"
 
@@ -13,7 +14,7 @@ import (
 
 // 🔹 Gestion de la page profil (Affichage et Modification)
 func Profile(w http.ResponseWriter, r *http.Request) {
-	// Vérifier si l'utilisateur est connecté
+	// Vérifier si le cookie de session existe
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -22,12 +23,14 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	userAgent := r.UserAgent()
 	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
+
 	if !valid {
 		security.DeleteCookie(w, cookie.Value)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
+	// Récupérer l'utilisateur en base
 	user, err := models.GetUserByID(userID)
 	if err != nil || user == nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -59,6 +62,12 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Vérifier si l'utilisateur s'est connecté avec Google
+		if user.Provider.Valid && user.Provider.String == "google" || user.Provider.Valid && user.Provider.String == "github" {
+			http.Error(w, "Modification des informations impossible pour les comptes Google ou Github", http.StatusForbidden)
+			return
+		}
+
 		// Vérifier si le nouvel email est déjà utilisé
 		existingUser, _ := models.GetUserByEmail(input.Email)
 		if existingUser != nil && existingUser.ID != userID {
@@ -76,8 +85,14 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		// Vérifier si l'utilisateur change son mot de passe
 		var hashedPassword string
 		if input.NewPassword != "" {
+			// Vérifier si l'utilisateur a un mot de passe défini (pour éviter les NULL venant de Google)
+			if !user.Password.Valid || user.Password.String == "" {
+				http.Error(w, "Aucun mot de passe défini, modification impossible", http.StatusUnauthorized)
+				return
+			}
+
 			// Vérifier l'ancien mot de passe
-			err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.OldPassword))
+			err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(input.OldPassword))
 			if err != nil {
 				http.Error(w, "Ancien mot de passe incorrect", http.StatusUnauthorized)
 				return
@@ -91,7 +106,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			}
 			hashedPassword = string(hashedPasswordBytes)
 		} else {
-			hashedPassword = user.Password // Garder l'ancien mot de passe si non modifié
+			hashedPassword = user.Password.String // Garder l'ancien mot de passe si non modifié
 		}
 
 		// Mettre à jour le profil
