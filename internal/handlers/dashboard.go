@@ -12,6 +12,7 @@ type User struct {
 	ID       string
 	Username string
 	Role     string
+	Banned   bool
 }
 
 // Handler pour afficher le tableau de bord admin
@@ -25,13 +26,13 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Récupérer l'ID et le rôle de l'utilisateur depuis le token
 	_, role, valid := security.ValidateSecureToken(cookie.Value, r.UserAgent())
-	if !valid || role != "admin" {
+	if !valid || (role != "admin" && role != "moderator") {
 		http.Error(w, "Accès refusé", http.StatusForbidden)
 		return
 	}
 
 	// Récupérer tous les utilisateurs
-	rows, err := database.DB.Query("SELECT id, username, role FROM users")
+	rows, err := database.DB.Query("SELECT id, username, role, banned FROM users")
 	if err != nil {
 		http.Error(w, "Erreur serveur", http.StatusInternalServerError)
 		return
@@ -41,7 +42,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.Banned); err != nil {
 			http.Error(w, "Erreur de récupération", http.StatusInternalServerError)
 			return
 		}

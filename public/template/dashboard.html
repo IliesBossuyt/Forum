@@ -13,15 +13,28 @@
             <th>Nom d'utilisateur</th>
             <th>Rôle</th>
             <th>Action</th>
+            <th>Bannissement</th>
         </tr>
         {{range .Users}}
         <tr>
             <td>{{.ID}}</td>
             <td>{{.Username}}</td>
-            <td id="role-{{.ID}}">{{.Role}}</td>
             <td>
-                <button id="btn-{{.ID}}" data-userid="{{.ID}}" data-role="{{.Role}}" class="role-btn">
-                    {{if eq .Role "user"}}Promouvoir Admin{{else}}Rétrograder User{{end}}
+                <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
+                    <option value="user" {{if eq .Role "user"}}selected{{end}}>User</option>
+                    <option value="moderator" {{if eq .Role "moderator"}}selected{{end}}>Moderator</option>
+                    <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
+                </select>
+            </td>
+            <td>
+                <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
+            </td>
+                        <td>
+                <button 
+                    data-userid="{{.ID}}" 
+                    data-banned="{{.Banned}}" 
+                    class="ban-toggle-btn">
+                    {{if .Banned}}Débannir{{else}}Bannir{{end}}
                 </button>
             </td>
         </tr>
@@ -30,12 +43,10 @@
 
     <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Sélectionne tous les boutons avec la classe "role-btn"
-        document.querySelectorAll(".role-btn").forEach(button => {
+        document.querySelectorAll(".update-role-btn").forEach(button => {
             button.addEventListener("click", function () {
                 let userID = this.getAttribute("data-userid");
-                let currentRole = this.getAttribute("data-role");
-                let newRole = currentRole === "user" ? "admin" : "user";
+                let newRole = document.getElementById(`role-${userID}`).value;
 
                 fetch('/change-role', {
                     method: 'POST',
@@ -45,23 +56,48 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Mettre à jour le rôle dans le tableau
-                        document.getElementById(`role-${userID}`).innerText = newRole;
-
-                        // Mettre à jour le bouton
-                        this.innerText = newRole === "admin" ? "Rétrograder User" : "Promouvoir Admin";
-                        this.setAttribute("data-role", newRole);
+                        alert("Rôle mis à jour avec succès !");
                     } else {
                         alert("Erreur : " + data.message);
                     }
                 })
                 .catch(error => {
                     console.error("Erreur :", error);
-                    alert("Une erreur est survenue lors de la modification du rôle.");
+                    alert("Une erreur est survenue.");
                 });
             });
         });
     });
+
+
+     // Bannir / Débannir
+     document.querySelectorAll(".ban-toggle-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let userID = this.getAttribute("data-userid");
+                let isBanned = this.getAttribute("data-banned") === "true";
+                let newBannedState = !isBanned;
+
+                fetch('/toggle-ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userID, banned: newBannedState })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.innerText = newBannedState ? "Débannir" : "Bannir";
+                        this.setAttribute("data-banned", newBannedState.toString());
+                        alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+                    } else {
+                        alert("Erreur : " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur :", error);
+                    alert("Une erreur est survenue.");
+                });
+            });
+        });
     </script>
 </body>
 </html>

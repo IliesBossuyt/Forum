@@ -20,6 +20,7 @@ type User struct {
 	GoogleID sql.NullString // Peut être NULL
 	GitHubID sql.NullString
 	Provider sql.NullString // Peut être NULL
+	Banned   bool
 }
 
 // Fonction pour créer un utilisateur
@@ -50,8 +51,8 @@ func GetUserByEmail(email string) (*User, error) {
 	var user User
 
 	err := database.DB.QueryRow(
-		"SELECT id, username, email, password, role, google_id, provider FROM users WHERE email = ?", email,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider)
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE email = ?", email,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
 
 	if err == sql.ErrNoRows {
 		return nil, nil // Aucun utilisateur trouvé
@@ -69,8 +70,8 @@ func GetUserByID(userID string) (*User, error) {
 	var user User
 
 	err := database.DB.QueryRow(
-		"SELECT id, username, email, password, role, google_id, provider FROM users WHERE id = ?", userID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider)
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE id = ?", userID,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -87,8 +88,8 @@ func GetUserByUsername(username string) (*User, error) {
 	var user User
 
 	err := database.DB.QueryRow(
-		"SELECT id, username, email, password, role, google_id, provider FROM users WHERE username = ?", username,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider)
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE username = ?", username,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -105,9 +106,9 @@ func GetUserByIdentifier(identifier string) (*User, error) {
 	var user User
 
 	err := database.DB.QueryRow(
-		"SELECT id, username, email, password, role, google_id, provider FROM users WHERE username = ? OR email = ?",
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE username = ? OR email = ?",
 		identifier, identifier,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
 
 	if err == sql.ErrNoRows {
 		return nil, nil

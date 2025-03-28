@@ -1,6 +1,7 @@
 package security
 
 import (
+	"Forum/internal/models"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -63,6 +64,11 @@ func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) 
 func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) error {
 	userAgent := r.UserAgent()
 
+	user, err := models.GetUserByID(userID)
+	if err != nil || user == nil {
+		// gérer l'erreur
+	}
+
 	// Générer le token sécurisé
 	token, err := GenerateSecureToken(userID, userAgent, role)
 	if err != nil {
@@ -73,6 +79,7 @@ func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) e
 
 	// Insérer en base
 	sessionUUID := ExtractUUID(token)
+
 	err = CreateSession(sessionUUID, userID, userAgent, role, expirationTime)
 	if err != nil {
 		return err

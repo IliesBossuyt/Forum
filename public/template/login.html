@@ -4,29 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion</title>
-    <script>
-        function loginUser(event) {
-            event.preventDefault();
-            let data = {
-                identifier: document.getElementById("identifier").value, // Peut être email ou username
-                password: document.getElementById("password").value
-            };
-
-            fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.text())
-            .then(text => {
-                document.getElementById("message").innerText = text;
-                if (text.includes("réussie")) {
-                    setTimeout(() => window.location.href = "/profile", 500);
-                }
-            })
-            .catch(error => console.error("Erreur:", error));
-        }
-    </script>
 </head>
 <body>
     <h2>Connexion</h2>
@@ -52,6 +29,44 @@
 </body>
 </html>
 <script>
+
+function loginUser(event) {
+    event.preventDefault();
+
+    let data = {
+        identifier: document.getElementById("identifier").value,
+        password: document.getElementById("password").value
+    };
+
+    fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(async response => {
+        if (response.status === 403) {
+            const res = await response.json();
+            if (res.banned === "true") {
+                document.getElementById("message").innerText =
+                    "⚠️ Vous avez été banni du site. Veuillez contacter un administrateur.";
+                return;
+            }
+        }
+
+        const text = await response.text();
+        document.getElementById("message").innerText = text;
+
+        if (text.includes("réussie")) {
+            setTimeout(() => window.location.href = "/profile", 500);
+        }
+    })
+    .catch(error => {
+        console.error("Erreur:", error);
+        document.getElementById("message").innerText = "Erreur lors de la connexion.";
+    });
+}
+
+
     function openGoogleLogin() {
         const width = 600, height = 700;
         const left = (screen.width - width) / 2;
