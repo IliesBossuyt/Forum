@@ -1,6 +1,7 @@
 package security
 
 import (
+	"Forum/internal/models"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,53 +14,63 @@ import (
 // Clé secrète pour sécuriser les tokens
 var secretKey = []byte("super-secret-key")
 
-// Générer un token sécurisé (UUID + Signature)
-func GenerateSecureToken(userID, userAgent string) (string, error) {
+// Générer un token sécurisé (UUID + Signature + Rôle)
+func GenerateSecureToken(userID, userAgent, role string) (string, error) {
 	sessionUUID := uuid.New().String()
 
 	h := hmac.New(sha256.New, secretKey)
-	data := sessionUUID + ":" + userAgent
+	data := sessionUUID + ":" + userAgent + ":" + role
 	h.Write([]byte(data))
 	signature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
-	token := sessionUUID + ":" + signature
+	token := sessionUUID + ":" + signature + ":" + role
 
 	return token, nil
 }
 
 // Vérifier si un token est valide (User-Agent)
-func ValidateSecureToken(token, currentUserAgent string) (string, bool) {
-	parts := splitToken(token, 2)
-	if len(parts) != 2 {
-		return "", false
+func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) {
+	parts := splitToken(token, 3)
+	if len(parts) != 3 {
+		return "", "", false
 	}
 
-	sessionUUID, receivedSignature := parts[0], parts[1]
+	sessionUUID, receivedSignature, role := parts[0], parts[1], parts[2]
 
 	h := hmac.New(sha256.New, secretKey)
-	data := sessionUUID + ":" + currentUserAgent
+	data := sessionUUID + ":" + currentUserAgent + ":" + role
 	h.Write([]byte(data))
 	expectedSignature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(receivedSignature), []byte(expectedSignature)) {
-
-		// On récupère `userID` depuis la session en base
-		userID, err := GetUserIDFromSession(sessionUUID)
+		// 🔹 Récupérer `userID` et `role` depuis la session en base
+		userID, storedRole, err := GetUserIDFromSession(sessionUUID)
 		if err != nil {
-			return "", false
+			return "", "", false
 		}
-		return userID, true
+
+		// 🔹 Vérifier que le rôle stocké correspond au rôle du token
+		if storedRole != role {
+			return "", "", false
+		}
+
+		return userID, role, true
 	}
 
-	return "", false
+	return "", "", false
 }
 
 // Créer un cookie sécurisé
-func CreateCookie(w http.ResponseWriter, r *http.Request, userID string) error {
+func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) error {
 	userAgent := r.UserAgent()
 
+	user, err := models.GetUserByID(userID)
+	if err != nil || user == nil {
+		// gérer l'erreur
+	}
+
 	// Générer le token sécurisé
-	token, err := GenerateSecureToken(userID, userAgent)
+	token, err := GenerateSecureToken(userID, userAgent, role)
 	if err != nil {
 		return err
 	}
@@ -68,7 +79,8 @@ func CreateCookie(w http.ResponseWriter, r *http.Request, userID string) error {
 
 	// Insérer en base
 	sessionUUID := ExtractUUID(token)
-	err = CreateSession(sessionUUID, userID, userAgent, expirationTime)
+
+	err = CreateSession(sessionUUID, userID, userAgent, role, expirationTime)
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panneau Admin</title>
+</head>
+<body>
+    <h2>Panneau d'administration</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Nom d'utilisateur</th>
+            <th>Rôle</th>
+            <th>Action</th>
+            <th>Bannissement</th>
+        </tr>
+        {{range .Users}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.Username}}</td>
+            <td>
+                <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
+                    <option value="user" {{if eq .Role "user"}}selected{{end}}>User</option>
+                    <option value="moderator" {{if eq .Role "moderator"}}selected{{end}}>Moderator</option>
+                    <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
+                </select>
+            </td>
+            <td>
+                <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
+            </td>
+                        <td>
+                <button 
+                    data-userid="{{.ID}}" 
+                    data-banned="{{.Banned}}" 
+                    class="ban-toggle-btn">
+                    {{if .Banned}}Débannir{{else}}Bannir{{end}}
+                </button>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".update-role-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let userID = this.getAttribute("data-userid");
+                let newRole = document.getElementById(`role-${userID}`).value;
+
+                fetch('/change-role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userID, role: newRole })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Rôle mis à jour avec succès !");
+                    } else {
+                        alert("Erreur : " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur :", error);
+                    alert("Une erreur est survenue.");
+                });
+            });
+        });
+    });
+
+
+     // Bannir / Débannir
+     document.querySelectorAll(".ban-toggle-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let userID = this.getAttribute("data-userid");
+                let isBanned = this.getAttribute("data-banned") === "true";
+                let newBannedState = !isBanned;
+
+                fetch('/toggle-ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userID, banned: newBannedState })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.innerText = newBannedState ? "Débannir" : "Bannir";
+                        this.setAttribute("data-banned", newBannedState.toString());
+                        alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+                    } else {
+                        alert("Erreur : " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur :", error);
+                    alert("Une erreur est survenue.");
+                });
+            });
+        });
+    </script>
+</body>
+</html>

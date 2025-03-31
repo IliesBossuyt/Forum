@@ -15,8 +15,12 @@ type User struct {
 	ID       string
 	Username string
 	Email    string
-	Password string
+	Password sql.NullString // Peut être NULL
 	Role     string
+	GoogleID sql.NullString // Peut être NULL
+	GitHubID sql.NullString
+	Provider sql.NullString // Peut être NULL
+	Banned   bool
 }
 
 // Fonction pour créer un utilisateur
@@ -44,50 +48,116 @@ func CreateUser(username, email, password string) error {
 
 // Trouver un utilisateur par email
 func GetUserByEmail(email string) (*User, error) {
-	row := database.DB.QueryRow("SELECT id, username, email, password, role FROM users WHERE email = ?", email)
-
 	var user User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role)
+
+	err := database.DB.QueryRow(
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE email = ?", email,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
+
 	if err == sql.ErrNoRows {
 		return nil, nil // Aucun utilisateur trouvé
 	} else if err != nil {
 		return nil, err
 	}
 
+	user.Normalize()
+
 	return &user, nil
 }
 
-// 🔹 Récupérer un utilisateur par ID
+// Récupérer un utilisateur par ID
 func GetUserByID(userID string) (*User, error) {
 	var user User
-	err := database.DB.QueryRow("SELECT id, username, email FROM users WHERE id = ?", userID).
-		Scan(&user.ID, &user.Username, &user.Email)
 
-	if err != nil {
+	err := database.DB.QueryRow(
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE id = ?", userID,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
+
+	user.Normalize()
+
 	return &user, nil
 }
 
 func GetUserByUsername(username string) (*User, error) {
-	row := database.DB.QueryRow("SELECT id, username, email, password, role FROM users WHERE username = ?", username)
-
 	var user User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role)
-	if err != nil {
+
+	err := database.DB.QueryRow(
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE username = ?", username,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
+
+	user.Normalize()
 
 	return &user, nil
 }
 
 func GetUserByIdentifier(identifier string) (*User, error) {
 	var user User
-	err := database.DB.QueryRow("SELECT id, username, email, password FROM users WHERE username = ? OR email = ?", identifier, identifier).
-		Scan(&user.ID, &user.Username, &user.Email, &user.Password)
 
-	if err != nil {
+	err := database.DB.QueryRow(
+		"SELECT id, username, email, password, role, google_id, provider, github_id, banned FROM users WHERE username = ? OR email = ?",
+		identifier, identifier,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
+
+	user.Normalize()
+
 	return &user, nil
+}
+
+// Modifier le profil utilisateur
+func UpdateUserProfile(userID, username, email, password string) error {
+	_, err := database.DB.Exec("UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?",
+		username, email, password, userID)
+	return err
+}
+
+func CreateGoogleUser(username, email, googleID string) error {
+	// Générer un UUID pour l'utilisateur
+	id := uuid.New().String()
+
+	_, err := database.DB.Exec(`
+		INSERT INTO users (id, username, email, google_id, password, provider, role) 
+		VALUES (?, ?, ?, ?, NULL, ?, ?)`, id, username, email, googleID, "google", "user")
+
+	return err
+}
+
+func CreateGitHubUser(username, email, githubID string) error {
+	// Générer un UUID pour l'utilisateur
+	id := uuid.New().String()
+
+	_, err := database.DB.Exec(`
+		INSERT INTO users (id, username, email, github_id, password, provider, role) 
+		VALUES (?, ?, ?, ?, NULL, ?, ?)`, id, username, email, githubID, "github", "user")
+
+	return err
+}
+
+func (u *User) Normalize() {
+	if !u.Password.Valid {
+		u.Password.String = ""
+	}
+	if !u.GoogleID.Valid {
+		u.GoogleID.String = ""
+	}
+	if !u.Provider.Valid {
+		u.Provider.String = ""
+	}
 }
