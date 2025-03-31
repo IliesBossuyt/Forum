@@ -77,7 +77,7 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("🔹 Utilisateur Google récupéré :", googleUser.Name, googleUser.Email, googleUser.ID)
+	fmt.Println("Utilisateur Google récupéré :", googleUser.Name, googleUser.Email, googleUser.ID)
 
 	// Vérifier si l'utilisateur existe déjà en base
 	user, err := models.GetUserByEmail(googleUser.Email)
@@ -116,10 +116,10 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
     <script>
         if (window.opener) {
-            window.opener.location.href = "/profile"; // Rediriger vers /profile
+            window.opener.location.href = "/user/profile"; // Rediriger vers /profile
             window.close(); // Fermer la pop-up
         } else {
-            window.location.href = "/profile"; // Si pas d'opener, rediriger normalement
+            window.location.href = "/user/profile"; // Si pas d'opener, rediriger normalement
         }
     </script>
 `)

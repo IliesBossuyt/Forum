@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"Forum/internal/database"
-	"Forum/internal/security"
 	"encoding/json"
 	"net/http"
 )
@@ -15,26 +14,12 @@ var validRoles = map[string]bool{
 }
 
 func ChangeUserRole(w http.ResponseWriter, r *http.Request) {
-	// Vérification admin
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Error(w, "Non autorisé", http.StatusUnauthorized)
-		return
-	}
-
-	_, role, valid := security.ValidateSecureToken(cookie.Value, r.UserAgent())
-	if !valid || role != "admin" {
-		http.Error(w, "Accès refusé", http.StatusForbidden)
-		return
-	}
-
 	// Lire le JSON envoyé par le frontend
 	var requestData struct {
 		UserID string `json:"user_id"`
 		Role   string `json:"role"`
 	}
-	err = json.NewDecoder(r.Body).Decode(&requestData)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Données invalides", http.StatusBadRequest)
 		return
 	}
@@ -46,7 +31,7 @@ func ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mettre à jour le rôle dans la base de données
-	_, err = database.DB.Exec("UPDATE users SET role = ? WHERE id = ?", requestData.Role, requestData.UserID)
+	_, err := database.DB.Exec("UPDATE users SET role = ? WHERE id = ?", requestData.Role, requestData.UserID)
 	if err != nil {
 		http.Error(w, "Erreur mise à jour", http.StatusInternalServerError)
 		return

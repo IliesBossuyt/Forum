@@ -10,14 +10,9 @@ import (
 
 // Gestion de la page d'accueil (forum)
 func Home(w http.ResponseWriter, r *http.Request) {
-	// Vérifier si l'utilisateur est connecté (pas obligatoire)
-	cookie, err := r.Cookie("session")
-	var currentUserID, currentUserRole string
-
-	if err == nil { // Si le cookie existe, on tente de récupérer l'ID utilisateur et le rôle
-		userAgent := r.UserAgent()
-		currentUserID, currentUserRole, _ = security.ValidateSecureToken(cookie.Value, userAgent)
-	}
+	// Récupérer userID et rôle depuis le middleware
+	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
+	role, _ := r.Context().Value(security.ContextRoleKey).(string)
 
 	posts, err := models.GetAllPosts()
 	if err != nil {
@@ -27,8 +22,8 @@ func Home(w http.ResponseWriter, r *http.Request) {
 
 	// Passer CurrentUserID à chaque post
 	for i := range posts {
-		posts[i].CurrentUserID = currentUserID
-		posts[i].CurrentUserRole = currentUserRole
+		posts[i].CurrentUserID = userID
+		posts[i].CurrentUserRole = role
 	}
 
 	tmpl, err := template.ParseFiles("../public/template/home.html")

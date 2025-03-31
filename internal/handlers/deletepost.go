@@ -11,25 +11,15 @@ import (
 
 // Handler pour supprimer un post
 func DeletePost(w http.ResponseWriter, r *http.Request) {
-	// Vérifier si l'utilisateur est connecté
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Error(w, "Non autorisé", http.StatusUnauthorized)
-		return
-	}
-
-	// Récupérer l'ID utilisateur et le rôle via le token sécurisé
-	userID, role, valid := security.ValidateSecureToken(cookie.Value, r.UserAgent())
-	if !valid {
-		http.Error(w, "Session invalide", http.StatusUnauthorized)
-		return
-	}
+	// Récupérer userID et rôle depuis le middleware
+	userID := r.Context().Value(security.ContextUserIDKey).(string)
+	role := r.Context().Value(security.ContextRoleKey).(string)
 
 	// Lire l'ID du post depuis le JSON reçu
 	var requestData struct {
 		PostID string `json:"post_id"`
 	}
-	err = json.NewDecoder(r.Body).Decode(&requestData)
+	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, "Requête invalide", http.StatusBadRequest)
 		return

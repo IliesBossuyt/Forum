@@ -48,7 +48,7 @@
                 let userID = this.getAttribute("data-userid");
                 let newRole = document.getElementById(`role-${userID}`).value;
 
-                fetch('/change-role', {
+                fetch('/admin/change-role', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userID, role: newRole })
@@ -77,7 +77,7 @@
                 let isBanned = this.getAttribute("data-banned") === "true";
                 let newBannedState = !isBanned;
 
-                fetch('/toggle-ban', {
+                fetch('/admin/toggle-ban', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userID, banned: newBannedState })

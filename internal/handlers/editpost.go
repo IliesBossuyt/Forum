@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -18,21 +17,8 @@ func EditPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifier l'authentification
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	userAgent := r.UserAgent()
-	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
-	if !valid {
-		security.DeleteCookie(w, cookie.Value)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		fmt.Println("Token invalide, redirection vers /login")
-		return
-	}
+	// Récupérer userID et rôle depuis le middleware
+	userID := r.Context().Value(security.ContextUserIDKey).(string)
 
 	// Récupérer les valeurs du formulaire
 	postID, err := strconv.Atoi(r.FormValue("post_id"))

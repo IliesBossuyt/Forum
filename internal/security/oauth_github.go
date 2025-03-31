@@ -152,10 +152,10 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
     <script>
         if (window.opener) {
-            window.opener.location.href = "/profile"; // Rediriger vers /profile
+            window.opener.location.href = "/user/profile"; // Rediriger vers /profile
             window.close(); // Fermer la pop-up
         } else {
-            window.location.href = "/profile"; // Si pas d'opener, rediriger normalement
+            window.location.href = "/user/profile"; // Si pas d'opener, rediriger normalement
         }
     </script>
 `)

@@ -11,26 +11,23 @@ import (
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	// Vérifier si l'utilisateur est déjà connecté
-	cookie, err := r.Cookie("session")
-	if err == nil {
-		// Vérifier la validité du token dans le cookie
-		userID, _, valid := security.ValidateSecureToken(cookie.Value, r.UserAgent())
-		if valid {
-			// Vérification de l'existence de l'utilisateur en base
-			user, err := models.GetUserByID(userID)
-			if err == nil && user != nil && !user.Banned {
-				// Rediriger directement vers le profil
-				http.Redirect(w, r, "/profile", http.StatusSeeOther)
-				return
-			} else if user != nil && user.Banned {
-				http.Redirect(w, r, "/banned", http.StatusSeeOther)
-				return
-			}
-		}
-	}
-
 	if r.Method == http.MethodGet {
+		// Si utilisateur déjà connecté, on peut rediriger vers /profile
+		cookie, err := r.Cookie("session")
+		if err == nil {
+			userID, _, valid := security.ValidateSecureToken(cookie.Value, r.UserAgent())
+			if valid {
+				user, err := models.GetUserByID(userID)
+				if err == nil && user != nil && !user.Banned {
+					http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
+					return
+				}
+			}
+
+			// Si token invalide ou utilisateur banni → on nettoie le cookie
+			security.DeleteCookie(w, cookie.Value)
+		}
+
 		http.ServeFile(w, r, "../public/template/login.html")
 		return
 	} else if r.Method == http.MethodPost {
@@ -60,7 +57,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				"banned": "true",
 			})
 			return
-		}		
+		}
 
 		// Vérifier que l'utilisateur a bien un mot de passe
 		if !user.Password.Valid || user.Password.String == "" {
@@ -92,5 +89,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		security.DeleteCookie(w, cookie.Value)
 	}
 
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 }

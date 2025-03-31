@@ -15,26 +15,15 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	userAgent := r.UserAgent()
-	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
-	if !valid {
-		security.DeleteCookie(w, cookie.Value)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
+	// Récupérer userID et rôle depuis le middleware
+	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 
 	var input struct {
 		PostID int `json:"post_id"`
 		Value  int `json:"value"`
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&input)
+	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		http.Error(w, "Données invalides", http.StatusBadRequest)
 		return

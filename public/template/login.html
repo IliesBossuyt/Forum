@@ -38,7 +38,7 @@ function loginUser(event) {
         password: document.getElementById("password").value
     };
 
-    fetch("/login", {
+    fetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
@@ -57,7 +57,7 @@ function loginUser(event) {
         document.getElementById("message").innerText = text;
 
         if (text.includes("réussie")) {
-            setTimeout(() => window.location.href = "/profile", 500);
+            setTimeout(() => window.location.href = "/user/profile", 500);
         }
     })
     .catch(error => {

@@ -26,22 +26,9 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifier si l'utilisateur est connecté (via le cookie)
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Récupérer le userID à partir du token de session
-	userAgent := r.UserAgent()
-	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
-	if !valid {
-		security.DeleteCookie(w, cookie.Value)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
+	// Récupérer userID et rôle depuis le middleware
+	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
+	
 	// Vérification du contenu du post : il faut AU MOINS du texte ou une image
 	content := r.FormValue("content")
 
@@ -101,5 +88,5 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Rediriger vers /home après la publication
-	http.Redirect(w, r, "/home", http.StatusSeeOther)
+	http.Redirect(w, r, "/entry/home", http.StatusSeeOther)
 }

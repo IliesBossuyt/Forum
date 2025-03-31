@@ -44,7 +44,7 @@
                 new_password: document.getElementById("new-password").value
             };
 
-            fetch("/profile", {
+            fetch("/auth/profile", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)

@@ -9,7 +9,7 @@
 <body>
     <h2>Bienvenue sur le Forum</h2>
 
-    <form action="/create-post" method="POST" enctype="multipart/form-data">
+    <form action="/user/create-post" method="POST" enctype="multipart/form-data">
         <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
         <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
         <button type="submit">Publier</button>
@@ -21,7 +21,7 @@
             <p><strong>Posté par :</strong> {{.Username}}</p>
             <p id="content-{{.ID}}">{{.Content}}</p>
             {{if .Image}}
-                <img src="/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/image/{{.ID}}')">
+                <img src="/entry/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.ID}}')">
             {{end}}
             
             <!-- Affichage des likes et dislikes-->
@@ -80,7 +80,7 @@
 
 <script>
 function likePost(postID, value) {
-    fetch('/like', {
+    fetch('/user/like', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
@@ -122,7 +122,7 @@ function confirmDelete() {
 function deletePost(postID) {
     console.log("Suppression demandée pour le post ID :", postID);
 
-    fetch('/delete-post', {
+    fetch('/user/delete-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ post_id: postID })
@@ -191,7 +191,7 @@ function submitEdit() {
         formData.append("image", fileInput.files[0]);
     }
 
-    fetch('/edit-post', {
+    fetch('/user/edit-post', {
         method: 'POST',
         body: formData
     })
@@ -202,7 +202,7 @@ function submitEdit() {
             document.getElementById(`content-${postID}`).innerText = newContent;
 
             // Récupération de l'élément image
-            let imgElement = document.querySelector(`img[src^="/image/${postID}"]`);
+            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
 
             if (data.imageUpdated) {
             if (!imgElement) {
@@ -211,7 +211,7 @@ function submitEdit() {
                 imgElement.style.cursor = "pointer";
                 imgElement.width = 200;
                 imgElement.alt = "Image postée";
-                imgElement.onclick = function() { openModal(`/image/${postID}`); };
+                imgElement.onclick = function() { openModal(`/entry/image/${postID}`); };
 
                 let postDiv = document.getElementById(`content-${postID}`).parentNode;
                 
@@ -221,11 +221,11 @@ function submitEdit() {
             }
 
             // Met à jour l'image avec un timestamp unique
-            imgElement.src = `/image/${postID}?t=${new Date().getTime()}`;
+            imgElement.src = `/entry/image/${postID}?t=${new Date().getTime()}`;
             imgElement.style.display = "block";
             } 
             if (data.imageDeleted) {
-            let imgElement = document.querySelector(`img[src^="/image/${postID}"]`);
+            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
 
             if (imgElement) {
                 imgElement.remove(); // Supprime l'image du DOM
