@@ -56,14 +56,14 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 		// Vérifier si le nouvel email est déjà utilisé
 		existingUser, _ := models.GetUserByEmail(input.Email)
-		if existingUser != nil && existingUser.ID != user.ID {
+		if existingUser != nil && existingUser.ID != userID {
 			http.Error(w, "Cet email est déjà utilisé", http.StatusBadRequest)
 			return
 		}
 
 		// Vérifier si le nouvel username est déjà utilisé
 		existingUser, _ = models.GetUserByUsername(input.Username)
-		if existingUser != nil && existingUser.ID != user.ID {
+		if existingUser != nil && existingUser.ID != userID {
 			http.Error(w, "Ce nom d'utilisateur est déjà pris", http.StatusBadRequest)
 			return
 		}
@@ -96,7 +96,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Mettre à jour le profil
-		err = models.UpdateUserProfile(user.ID, input.Username, input.Email, hashedPassword)
+		err = models.UpdateUserProfile(userID, input.Username, input.Email, hashedPassword)
 		if err != nil {
 			http.Error(w, "Erreur lors de la mise à jour du profil", http.StatusInternalServerError)
 			return

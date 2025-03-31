@@ -1,41 +1,60 @@
 package router
 
 import (
-	"fmt"
-	"net/http"
-
 	"Forum/internal/database"
 	"Forum/internal/handlers"
 	"Forum/internal/security"
+	"fmt"
+	"net/http"
 )
 
 func Router() {
 	database.InitDatabase()
-	// Définir les différentes routes
-	http.HandleFunc("/", handlers.Accueil)
-	http.HandleFunc("/register", handlers.Register)
-	http.HandleFunc("/login", handlers.Login)
-	http.HandleFunc("/profile", handlers.Profile)
-	http.HandleFunc("/logout", handlers.Logout)
-	http.HandleFunc("/home", handlers.Home)
-	http.HandleFunc("/create-post", handlers.CreatePost)
-	http.HandleFunc("/like", handlers.LikePost)
-	http.HandleFunc("/edit-post", handlers.EditPost)
-	http.HandleFunc("/image/{id}", handlers.GetImage)
-	http.HandleFunc("/delete-post", handlers.DeletePost)
-	http.HandleFunc("/auth/google/login", security.GoogleLogin)
-	http.HandleFunc("/auth/google/callback", security.GoogleCallback)
-	http.HandleFunc("/auth/github/login", security.GitHubLogin)
-	http.HandleFunc("/auth/github/callback", security.GitHubCallback)
 
-	http.HandleFunc("/dashboard", security.AdminOnly(handlers.DashboardHandler))
-	http.HandleFunc("/change-role", security.AdminOnly(handlers.ChangeUserRole))
-	http.HandleFunc("/toggle-ban", security.AdminOnly(security.ToggleBanUser))
+	mainRouter := http.NewServeMux()
 
+	// === Middleware de rôle ===
+	requireRole := security.RequireRole
 
-	fs := http.FileServer(http.Dir("../public/static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.ListenAndServe(":8080", nil)
-	fmt.Println("Serveur lancé sur http://localhost:8080/")
-	// On lance le serveur local sur le port 8080
+	// === Fichiers statiques ===
+	mainRouter.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("public/static"))))
+
+	// === Guest routes ===
+	guestRouter := http.NewServeMux()
+	guestRouter.HandleFunc("/", handlers.Accueil)
+	guestRouter.HandleFunc("/home", handlers.Home)
+	mainRouter.Handle("/", http.StripPrefix("/", guestRouter))
+
+	// === Auth routes ===
+	authRouter := http.NewServeMux()
+	authRouter.HandleFunc("/register", handlers.Register)
+	authRouter.HandleFunc("/login", handlers.Login)
+	authRouter.HandleFunc("/logout", handlers.Logout)
+	authRouter.HandleFunc("/auth/google/login", security.GoogleLogin)
+	authRouter.HandleFunc("/auth/google/callback", security.GoogleCallback)
+	authRouter.HandleFunc("/auth/github/login", security.GitHubLogin)
+	authRouter.HandleFunc("/auth/github/callback", security.GitHubCallback)
+	mainRouter.Handle("/auth/", http.StripPrefix("/auth", authRouter))
+
+	// === User routes ===
+	userRouter := http.NewServeMux()
+	userRouter.HandleFunc("/profile", handlers.Profile)
+	userRouter.HandleFunc("/create-post", handlers.CreatePost)
+	userRouter.HandleFunc("/like", handlers.LikePost)
+	userRouter.HandleFunc("/edit-post", handlers.EditPost)
+	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
+	userRouter.HandleFunc("/image/", handlers.GetImage)
+	mainRouter.Handle("/user/", requireRole("user")(http.StripPrefix("/user", userRouter)))
+
+	// === Admin routes (Role: Admin) ===
+	adminRouter := http.NewServeMux()
+	adminRouter.HandleFunc("/dashboard", handlers.DashboardHandler)
+	adminRouter.HandleFunc("/change-role", handlers.ChangeUserRole)
+	adminRouter.HandleFunc("/toggle-ban", security.ToggleBanUser)
+	mainRouter.Handle("/admin/", requireRole("admin")(http.StripPrefix("/admin", adminRouter)))
+
+	// === Redirection HTTP → HTTPS ===
+	http.ListenAndServe(":8080", mainRouter)
+
+	fmt.Println("Serveur HTTPS lancé sur https://localhost:8443")
 }
