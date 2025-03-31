@@ -12,28 +12,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// 🔹 Gestion de la page profil (Affichage et Modification)
+// Gestion de la page profil (Affichage et Modification)
 func Profile(w http.ResponseWriter, r *http.Request) {
-	// Vérifier si le cookie de session existe
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
+	userID := r.Context().Value(security.ContextUserIDKey).(string)
 
-	userAgent := r.UserAgent()
-	userID, _, valid := security.ValidateSecureToken(cookie.Value, userAgent)
-
-	if !valid {
-		security.DeleteCookie(w, cookie.Value)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Récupérer l'utilisateur en base
+	// Charger l'utilisateur complet si besoin (par ex. pour afficher profil, email, etc.)
 	user, err := models.GetUserByID(userID)
 	if err != nil || user == nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Error(w, "Utilisateur introuvable", http.StatusInternalServerError)
 		return
 	}
 
@@ -70,14 +56,14 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 		// Vérifier si le nouvel email est déjà utilisé
 		existingUser, _ := models.GetUserByEmail(input.Email)
-		if existingUser != nil && existingUser.ID != userID {
+		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Cet email est déjà utilisé", http.StatusBadRequest)
 			return
 		}
 
 		// Vérifier si le nouvel username est déjà utilisé
 		existingUser, _ = models.GetUserByUsername(input.Username)
-		if existingUser != nil && existingUser.ID != userID {
+		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Ce nom d'utilisateur est déjà pris", http.StatusBadRequest)
 			return
 		}
@@ -110,7 +96,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Mettre à jour le profil
-		err = models.UpdateUserProfile(userID, input.Username, input.Email, hashedPassword)
+		err = models.UpdateUserProfile(user.ID, input.Username, input.Email, hashedPassword)
 		if err != nil {
 			http.Error(w, "Erreur lors de la mise à jour du profil", http.StatusInternalServerError)
 			return
