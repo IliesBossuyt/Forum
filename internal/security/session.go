@@ -20,11 +20,18 @@ func DeleteSession(sessionUUID string) error {
 	return err
 }
 
-func GetUserIDFromSession(sessionUUID string) (string, string, error) {
+func GetUserIDFromSession(sessionUUID string) (string, string, time.Time, error) {
 	var userID, role string
-	err := database.DB.QueryRow("SELECT user_id, role FROM sessions WHERE token = ?", sessionUUID).Scan(&userID, &role)
+	var expiresAt time.Time
+
+	err := database.DB.QueryRow(
+		"SELECT user_id, role, expires_at FROM sessions WHERE token = ?",
+		sessionUUID,
+	).Scan(&userID, &role, &expiresAt)
+
 	if err != nil {
-		return "", "", err
+		return "", "", time.Time{}, err
 	}
-	return userID, role, nil
+
+	return userID, role, expiresAt, nil
 }
