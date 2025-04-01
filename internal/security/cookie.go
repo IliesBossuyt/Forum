@@ -43,14 +43,14 @@ func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) 
 	expectedSignature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(receivedSignature), []byte(expectedSignature)) {
-		// 🔹 Récupérer `userID` et `role` depuis la session en base
-		userID, storedRole, err := GetUserIDFromSession(sessionUUID)
+		// Récupérer `userID` et `role` depuis la session en base
+		userID, storedRole, expiresAt, err := GetUserIDFromSession(sessionUUID)
 		if err != nil {
 			return "", "", false
 		}
 
-		// 🔹 Vérifier que le rôle stocké correspond au rôle du token
-		if storedRole != role {
+		// Vérifier que le rôle + expiration stocké correspond au rôle du token
+		if storedRole != role || expiresAt.Before(time.Now()) {
 			return "", "", false
 		}
 
