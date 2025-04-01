@@ -32,8 +32,8 @@ func Router() {
 
 	// === Auth routes ===
 	authRouter := http.NewServeMux()
-	authRouter.HandleFunc("/register", handlers.Register)
-	authRouter.HandleFunc("/login", handlers.Login)
+	authRouter.Handle("/register",security.RateLimitRegisterByIP(http.HandlerFunc(handlers.Register)))
+	authRouter.Handle("/login", security.RateLimitLoginByIP(security.RateLimitLoginByIdentifier(http.HandlerFunc(handlers.Login))))
 	authRouter.HandleFunc("/logout", handlers.Logout)
 	authRouter.HandleFunc("/google/login", security.GoogleLogin)
 	authRouter.HandleFunc("/google/callback", security.GoogleCallback)
@@ -44,7 +44,7 @@ func Router() {
 	// === User routes ===
 	userRouter := http.NewServeMux()
 	userRouter.HandleFunc("/profile", handlers.Profile)
-	userRouter.HandleFunc("/create-post", handlers.CreatePost)
+	userRouter.Handle("/create-post", security.RateLimitCreatePost(http.HandlerFunc(handlers.CreatePost)))
 	userRouter.HandleFunc("/like", handlers.LikePost)
 	userRouter.HandleFunc("/edit-post", handlers.EditPost)
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
@@ -70,7 +70,7 @@ func Router() {
 		":8443",
 		"certs/localhost.crt",
 		"certs/localhost.key",
-		mainRouter,
+		security.RateLimitGlobal(mainRouter),
 	)
 	
 	if err != nil {
