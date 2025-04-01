@@ -16,11 +16,11 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID, role string
-			role = "guest" // Valeur par défaut
+			role = "guest" // Valeur par défaut pour les visiteurs
 
 			cookie, err := r.Cookie("session")
 			if err == nil {
-				// Token présent → valider
+				// Token présent → validation
 				uid, userRole, valid := ValidateSecureToken(cookie.Value, r.UserAgent())
 				if valid {
 					userID = uid
@@ -28,13 +28,13 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			// Vérification du rôle autorisé
+			// ⛔ Si rôle non autorisé → redirection
 			if !contains(allowedRoles, role) {
-				http.Error(w, "Accès refusé", http.StatusForbidden)
+				http.Redirect(w, r, "/auth/unauthorized", http.StatusSeeOther)
 				return
 			}
 
-			// Ajouter dans le contexte
+			// ✅ Ajout des infos au contexte
 			ctx := context.WithValue(r.Context(), ContextUserIDKey, userID)
 			ctx = context.WithValue(ctx, ContextRoleKey, role)
 
