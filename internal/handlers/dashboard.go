@@ -9,11 +9,12 @@ import (
 
 // Structure de données pour affichage
 type DashboardData struct {
-	Users   []models.User
-	Reports []models.Report
+	Users      []models.User
+	Reports    []models.Report
+    WarnCounts map[string]int
 }
 
-func DashboardHandler(w http.ResponseWriter, r *http.Request) {
+func Dashboard(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		// Récupération des utilisateurs
 		rows, err := database.DB.Query("SELECT id, username, role, banned FROM users")
@@ -60,6 +61,17 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		warns, err := models.GetAllWarns()
+		if err != nil {
+			http.Error(w, "Erreur récupération des warns", http.StatusInternalServerError)
+			return
+		}
+		
+		warnCounts := make(map[string]int)
+		for _, warn := range warns {
+			warnCounts[warn.UserID]++
+		}
+
 		// Template
 		tmpl, err := template.ParseFiles("../public/template/dashboard.html")
 		if err != nil {
@@ -70,6 +82,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		data := DashboardData{
 			Users:   users,
 			Reports: reports,
+			WarnCounts: warnCounts,
 		}
 
 		tmpl.Execute(w, data)

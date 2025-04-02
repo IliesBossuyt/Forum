@@ -21,6 +21,8 @@ type User struct {
 	GitHubID sql.NullString
 	Provider sql.NullString // Peut être NULL
 	Banned   bool
+
+	Warns []Warn
 }
 
 // Fonction pour créer un utilisateur

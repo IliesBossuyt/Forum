@@ -24,6 +24,8 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodGet {
+		user.Warns, _ = models.GetWarnsByUserID(userID)
+
 		// Charger et afficher le template
 		tmpl, err := template.ParseFiles("../public/template/profile.html")
 		if err != nil {

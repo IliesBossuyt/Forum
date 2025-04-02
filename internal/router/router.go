@@ -57,8 +57,10 @@ func Router() {
 	// Admin routes
 	adminRouter := http.NewServeMux()
 	// Route dashboard (admin + moderateur)
-	adminRouter.HandleFunc("/dashboard", handlers.DashboardHandler)
+	adminRouter.HandleFunc("/dashboard", handlers.Dashboard)
 	adminRouter.HandleFunc("/delete-report", handlers.DeleteReport)
+	adminRouter.HandleFunc("/add-warn", handlers.AddWarn)
+	adminRouter.HandleFunc("/warns", handlers.GetUserWarns)
 
 	// Sous-routes sensibles (admin seul)
 	adminSecure := http.NewServeMux()
