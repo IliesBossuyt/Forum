@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
     <title>Panneau Admin</title>
 </head>
 <body>
@@ -30,10 +31,7 @@
                 <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
             </td>
                         <td>
-                <button 
-                    data-userid="{{.ID}}" 
-                    data-banned="{{.Banned}}" 
-                    class="ban-toggle-btn">
+                <button data-userid="{{.ID}}" data-banned="{{.Banned}}" class="ban-toggle-btn">
                     {{if .Banned}}Débannir{{else}}Bannir{{end}}
                 </button>
             </td>
@@ -41,14 +39,52 @@
         {{end}}
     </table>
 
-    <script>
+    <h3>Signalements récents</h3>
+    <ul>
+        {{range .Reports}}
+        <li style="margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 15px;">
+            <strong>Post signalé</strong><br>
+            <strong>Contenu :</strong> "{{.PostContent}}"<br>
+            {{if .PostImage}}
+                <strong>Image :</strong><br>
+                <img src="/entry/image/{{.PostID}}" alt="Image du post"  width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.PostID}}')"><br>
+            {{end}}
+            <strong>Auteur du post :</strong> {{.PostAuthor}}<br>
+            <strong>Signalé par :</strong> {{.Reporter}}<br>
+            <strong>Raison :</strong> {{.Reason}}<br>
+            <strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}
+            <br><br>
+            <button class="delete-report-btn" data-reportid="{{.ID}}">
+                Supprimer le signalement
+            </button>
+
+            <button class="ban-post-author-btn" data-userid="{{.PostAuthorID}}">
+                Bannir l'auteur du post
+            </button>
+            
+        </li>
+        {{end}}
+    </ul>
+
+    <!-- Fenêtre modale pour afficher les images en grand -->
+    <div id="imageModal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img id="modalContent">
+    </div>
+    
+
+</body>
+</html>
+
+
+<script>
     document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll(".update-role-btn").forEach(button => {
             button.addEventListener("click", function () {
                 let userID = this.getAttribute("data-userid");
                 let newRole = document.getElementById(`role-${userID}`).value;
 
-                fetch('/admin/change-role', {
+                fetch('/admin/secure/change-role', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userID, role: newRole })
@@ -70,34 +106,104 @@
     });
 
 
-     // Bannir / Débannir
-     document.querySelectorAll(".ban-toggle-btn").forEach(button => {
-            button.addEventListener("click", function () {
-                let userID = this.getAttribute("data-userid");
-                let isBanned = this.getAttribute("data-banned") === "true";
-                let newBannedState = !isBanned;
+    // Bannir / Débannir
+    document.querySelectorAll(".ban-toggle-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            let userID = this.getAttribute("data-userid");
+            let isBanned = this.getAttribute("data-banned") === "true";
+            let newBannedState = !isBanned;
 
-                fetch('/admin/toggle-ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userID, banned: newBannedState })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.innerText = newBannedState ? "Débannir" : "Bannir";
-                        this.setAttribute("data-banned", newBannedState.toString());
-                        alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
-                    } else {
-                        alert("Erreur : " + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error("Erreur :", error);
-                    alert("Une erreur est survenue.");
-                });
+            fetch('/admin/secure/toggle-ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userID, banned: newBannedState })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerText = newBannedState ? "Débannir" : "Bannir";
+                    this.setAttribute("data-banned", newBannedState.toString());
+                    alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+                } else {
+                    alert("Erreur : " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Erreur :", error);
+                alert("Une erreur est survenue.");
             });
         });
-    </script>
-</body>
-</html>
+    });
+
+    function openModal(imageSrc) {
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalContent");
+
+    modalImg.src = imageSrc;
+    modal.style.display = "flex";
+    setTimeout(() => {
+        modal.style.opacity = "1";
+        modalImg.style.transform = "scale(1)";
+    }, 10);
+}
+
+function closeModal() {
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalContent");
+
+    modal.style.opacity = "0";
+    modalImg.style.transform = "scale(0.5)";
+    setTimeout(() => {
+        modal.style.display = "none";
+    }, 300);
+}
+
+// Supprimer un signalement
+document.querySelectorAll(".delete-report-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const reportIDString = button.getAttribute("data-reportid");
+        const reportID = parseInt(reportIDString, 10);
+
+        if (!confirm("Supprimer ce signalement ?")) return;
+
+        fetch("/admin/delete-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ report_id: reportID }) 
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Signalement supprimé !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        });
+    });
+});
+
+// Bannir l'auteur du post signalé
+document.querySelectorAll(".ban-post-author-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const userID = button.getAttribute("data-userid");
+        if (!confirm("Bannir cet utilisateur ?")) return;
+
+        fetch("/admin/secure/toggle-ban", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userID, banned: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Utilisateur banni !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        });
+    });
+});
+
+</script>

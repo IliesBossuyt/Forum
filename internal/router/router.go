@@ -51,14 +51,23 @@ func Router() {
 	userRouter.HandleFunc("/like", handlers.LikePost)
 	userRouter.HandleFunc("/edit-post", handlers.EditPost)
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
+	userRouter.HandleFunc("/report", handlers.ReportPost)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// === ⚙️ Admin routes ===
 	adminRouter := http.NewServeMux()
+	// Route dashboard (admin + moderateur)
 	adminRouter.HandleFunc("/dashboard", handlers.DashboardHandler)
-	adminRouter.HandleFunc("/change-role", handlers.ChangeUserRole)
-	adminRouter.HandleFunc("/toggle-ban", security.ToggleBanUser)
-	routeManager.Handle("/admin/", requireRole("admin")(http.StripPrefix("/admin", adminRouter)))
+	adminRouter.HandleFunc("/delete-report", handlers.DeleteReport)
+
+	// Sous-routes sensibles (admin seul)
+	adminSecure := http.NewServeMux()
+	adminSecure.HandleFunc("/change-role", handlers.ChangeUserRole)
+	adminSecure.HandleFunc("/toggle-ban", security.ToggleBanUser)
+
+	// On attache les deux avec les bons droits
+	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", adminRouter)))
+	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", adminSecure)))
 
 	// 🧱 Handler final avec fallback 404
 	secureHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
