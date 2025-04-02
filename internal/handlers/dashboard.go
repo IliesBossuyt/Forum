@@ -3,15 +3,17 @@ package handlers
 import (
 	"Forum/internal/database"
 	"Forum/internal/models"
+	"Forum/internal/security"
 	"html/template"
 	"net/http"
 )
 
 // Structure de données pour affichage
 type DashboardData struct {
-	Users      []models.User
-	Reports    []models.Report
-    WarnCounts map[string]int
+	Users           []models.User
+	Reports         []models.Report
+	WarnCounts      map[string]int
+	CurrentUserRole string
 }
 
 func Dashboard(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +68,7 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Erreur récupération des warns", http.StatusInternalServerError)
 			return
 		}
-		
+
 		warnCounts := make(map[string]int)
 		for _, warn := range warns {
 			warnCounts[warn.UserID]++
@@ -79,10 +81,12 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		role := r.Context().Value(security.ContextRoleKey).(string)
 		data := DashboardData{
-			Users:   users,
-			Reports: reports,
-			WarnCounts: warnCounts,
+			Users:           users,
+			Reports:         reports,
+			WarnCounts:      warnCounts,
+			CurrentUserRole: role,
 		}
 
 		tmpl.Execute(w, data)

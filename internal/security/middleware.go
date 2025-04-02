@@ -52,7 +52,7 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			// ⛔ Si rôle non autorisé → redirection
+			// Si rôle non autorisé → redirection
 			if !contains(allowedRoles, role) {
 				http.Error(w, "Accès refusé", http.StatusForbidden)
 				return

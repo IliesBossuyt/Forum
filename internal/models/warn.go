@@ -65,3 +65,8 @@ func GetAllWarns() ([]Warn, error) {
 	}
 	return warns, nil
 }
+
+func DeleteWarnByID(warnID int) error {
+	_, err := database.DB.Exec("DELETE FROM warns WHERE id = ?", warnID)
+	return err
+}

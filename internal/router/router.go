@@ -66,6 +66,8 @@ func Router() {
 	adminSecure := http.NewServeMux()
 	adminSecure.HandleFunc("/change-role", handlers.ChangeUserRole)
 	adminSecure.HandleFunc("/toggle-ban", security.ToggleBanUser)
+	adminSecure.HandleFunc("/delete-warn", handlers.DeleteWarn)
+
 
 	// On attache les deux avec les bons droits
 	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", adminRouter)))
