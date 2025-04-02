@@ -10,29 +10,28 @@ type Comment struct {
 	ID        int
 	PostID    int
 	UserID    string
-	Username  string // ✅ Ajouté
+	Username  string
 	Content   string
 	CreatedAt time.Time
 }
 
+// Insérer un commentaire dans la base
 func InsertComment(userID string, postID int, content string) error {
-	db := database.DB
-	_, err := db.Exec(`
-		INSERT INTO comments (post_id, user_id, content)
-		VALUES (?, ?, ?)
-	`, postID, userID, content)
+	_, err := database.DB.Exec(
+		`INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)`,
+		postID, userID, content,
+	)
 	return err
 }
 
+// Récupérer les commentaires d'un post (avec nom d'utilisateur)
 func GetCommentsByPostID(postID int) ([]Comment, error) {
-	db := database.DB
-
-	rows, err := db.Query(`
-		SELECT c.id, c.post_id, c.user_id, u.username, c.content, c.created_at
-		FROM comments c
-		JOIN users u ON c.user_id = u.id
-		WHERE c.post_id = ?
-		ORDER BY c.created_at DESC
+	rows, err := database.DB.Query(`
+		SELECT comments.id, comments.post_id, comments.user_id, users.username, comments.content, comments.created_at
+		FROM comments
+		JOIN users ON comments.user_id = users.id
+		WHERE comments.post_id = ?
+		ORDER BY comments.created_at DESC
 	`, postID)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,8 @@ func GetCommentsByPostID(postID int) ([]Comment, error) {
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
-		if err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt); err != nil {
+		err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt)
+		if err != nil {
 			log.Println("Erreur lecture commentaire:", err)
 			continue
 		}

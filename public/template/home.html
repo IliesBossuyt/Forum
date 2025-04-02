@@ -17,291 +17,48 @@
 
     <h3>Publications récentes</h3>
     {{range .}}
-        <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
-            <p><strong>Posté par :</strong> {{.Username}}</p>
-            <p id="content-{{.ID}}">{{.Content}}</p>
-            {{if .Image}}
-                <img src="/entry/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.ID}}')">
-            {{end}}
-            
-            <!-- Affichage des likes et dislikes-->
-            <p>👍 <span id="likes-{{.ID}}">{{.Likes}}</span> | 👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></p>
-
-            <!-- Boutons de like et dislike -->
-            <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
-            <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
-
-            <button onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
-
-            <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
-            {{if eq .UserID .CurrentUserID}}
-                <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
+        <div id="post-{{.Post.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
+            <p><strong>Posté par :</strong> {{.Post.Username}}</p>
+            <p id="content-{{.Post.ID}}">{{.Post.Content}}</p>
+            {{if .Post.Image}}
+                <img src="/entry/image/{{.Post.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.Post.ID}}')">
             {{end}}
 
-            <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
-            {{if or (eq .UserID .CurrentUserID) (eq .CurrentUserRole "admin")}}
-            <button onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
+            <p>👍 <span id="likes-{{.Post.ID}}">{{.Post.Likes}}</span> | 👎 <span id="dislikes-{{.Post.ID}}">{{.Post.Dislikes}}</span></p>
+            <button onclick="likePost('{{.Post.ID}}', 1)">👍 Like</button>
+            <button onclick="likePost('{{.Post.ID}}', -1)">👎 Dislike</button>
+            <button onclick="reportPost('{{.Post.ID}}')">🚩 Signaler</button>
+
+            {{if eq .Post.UserID .Post.CurrentUserID}}
+                <button onclick="editPost('{{.Post.ID}}')">✏ Modifier</button>
             {{end}}
+
+            {{if or (eq .Post.UserID .Post.CurrentUserID) (eq .Post.CurrentUserRole "admin")}}
+                <button onclick="openDeleteForm('{{.Post.ID}}')">🗑 Supprimer</button>
+            {{end}}
+
+            <!-- Commentaires -->
+            <div style="margin-top: 10px;">
+                <h4>Commentaires :</h4>
+                {{if .Comments}}
+                    {{range .Comments}}
+                        <div class="comment">
+                            <strong>{{.Username}}</strong> : {{.Content}}<br>
+                            <small>{{.CreatedAt}}</small>
+                        </div>
+                    {{end}}
+                {{else}}
+                    <p>Aucun commentaire.</p>
+                {{end}}
+
+                <!-- Formulaire d'ajout de commentaire -->
+                <form action="/user/add-comment" method="POST">
+                    <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                    <textarea name="content" rows="2" style="width: 100%;" required></textarea><br>
+                    <button type="submit">Commenter</button>
+                </form>
+            </div>
         </div>
     {{end}}
-
-    <!-- Fenêtre modale pour afficher les images en grand -->
-    <div id="imageModal" onclick="closeModal()">
-        <span class="close">&times;</span>
-        <img id="modalContent">
-    </div>
-
-    <!-- Formulaire de modification de post (caché par défaut) -->
-    <div id="edit-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
-        <h3>Modifier le post</h3>
-        <textarea id="edit-content" rows="3" style="width:100%;"></textarea>
-        <input type="hidden" id="edit-post-id">
-        <br>
-        <label for="edit-image">Changer l'image :</label>
-        <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
-        <br>
-        <label><input type="checkbox" id="delete-image"> Supprimer l'image</label>
-        <br>
-        <button onclick="submitEdit()">Enregistrer</button>
-        <button onclick="closeEditForm()">Annuler</button>
-    </div>
-
-    <!-- Fenêtre modale pour confirmer la suppression (style similaire à la modale d'édition) -->
-    <div id="delete-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
-        <h3>Confirmer la suppression</h3>
-        <p>Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
-        <input type="hidden" id="delete-post-id">
-        <br>
-        <button onclick="confirmDelete()">🗑 Supprimer</button>
-        <button onclick="closeDeleteForm()">Annuler</button>
-    </div>
-
 </body>
 </html>
-
-
-<script>
-function likePost(postID, value) {
-    fetch('/user/like', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
-    })
-    .then(response => response.json()) // Récupérer la réponse JSON
-    .then(data => {
-        if (data.success) {
-            // Mettre à jour les valeurs sans recharger la page
-            document.getElementById(`likes-${postID}`).innerText = data.likes;
-            document.getElementById(`dislikes-${postID}`).innerText = data.dislikes;
-        } else {
-            alert("Erreur : " + data.message);
-        }
-    })
-    .catch(error => console.error("Erreur lors du like/dislike :", error));
-}
-
-// Ouvre la fenêtre de confirmation de suppression
-function openDeleteForm(postID) {
-    document.getElementById("delete-post-id").value = postID;
-    let modal = document.getElementById("delete-form");
-    modal.style.display = "block";
-}
-
-// Ferme la fenêtre modale de suppression
-function closeDeleteForm() {
-    let modal = document.getElementById("delete-form");
-    modal.style.display = "none";
-}
-
-// Confirme la suppression du post
-function confirmDelete() {
-    let postID = document.getElementById("delete-post-id").value;
-    deletePost(postID);
-    closeDeleteForm();
-}
-
-// Supprime le post via fetch API
-function deletePost(postID) {
-    console.log("Suppression demandée pour le post ID :", postID);
-
-    fetch('/user/delete-post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: postID })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Réponse JSON du serveur :", data);
-
-        if (data.success) {
-            console.log("Suppression réussie, tentative de suppression du post du DOM.");
-            
-            let postElement = document.getElementById(`post-${postID}`);
-            console.log("🔍 Élément HTML trouvé ?", postElement !== null);
-
-            if (postElement) {
-                postElement.remove();
-                console.log("🗑 Post supprimé du DOM.");
-            } else {
-                console.warn("Impossible de supprimer, élément introuvable dans le DOM !");
-            }
-        } else {
-            console.error("Erreur reçue du serveur :", data.message);
-            alert("Erreur : " + (data.message || "Réponse inattendue"));
-        }
-    })
-    .catch(error => {
-        console.error("Erreur JS :", error);
-        alert("Une erreur est survenue lors de la suppression.");
-    });
-}
-
-
-
-
-
-
-
-
-function editPost(postID) {
-    let currentContent = document.getElementById(`content-${postID}`).innerText;
-    document.getElementById("edit-content").value = currentContent;
-    document.getElementById("edit-post-id").value = postID;
-
-    // Décocher la case "Supprimer l'image" à chaque ouverture
-    document.getElementById("delete-image").checked = false;
-
-    document.getElementById("edit-form").style.display = "block";
-}
-
-
-function closeEditForm() {
-    document.getElementById("edit-form").style.display = "none";
-}
-
-function submitEdit() {
-    let postID = document.getElementById("edit-post-id").value;
-    let newContent = document.getElementById("edit-content").value;
-    let deleteImage = document.getElementById("delete-image").checked;
-    let formData = new FormData();
-    formData.append("post_id", postID);
-    formData.append("content", newContent);
-    formData.append("delete_image", deleteImage);
-
-    let fileInput = document.getElementById("edit-image");
-    if (fileInput.files.length > 0) {
-        formData.append("image", fileInput.files[0]);
-    }
-
-    fetch('/user/edit-post', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Mise à jour du texte du post
-            document.getElementById(`content-${postID}`).innerText = newContent;
-
-            // Récupération de l'élément image
-            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
-
-            if (data.imageUpdated) {
-            if (!imgElement) {
-                // Si l'image n'existe pas encore, on la crée
-                imgElement = document.createElement("img");
-                imgElement.style.cursor = "pointer";
-                imgElement.width = 200;
-                imgElement.alt = "Image postée";
-                imgElement.onclick = function() { openModal(`/entry/image/${postID}`); };
-
-                let postDiv = document.getElementById(`content-${postID}`).parentNode;
-                
-                // Insérer l'image juste après le paragraphe du contenu
-                let contentElement = document.getElementById(`content-${postID}`);
-                postDiv.insertBefore(imgElement, contentElement.nextSibling);
-            }
-
-            // Met à jour l'image avec un timestamp unique
-            imgElement.src = `/entry/image/${postID}?t=${new Date().getTime()}`;
-            imgElement.style.display = "block";
-            } 
-            if (data.imageDeleted) {
-            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
-
-            if (imgElement) {
-                imgElement.remove(); // Supprime l'image du DOM
-            }
-
-            // Vérifie s'il y a le texte "image postée" et le supprime
-            let textPlaceholder = document.querySelector(`#content-${postID} + p`);
-            if (textPlaceholder && textPlaceholder.innerText.includes("image postée")) {
-                textPlaceholder.remove();
-            }
-        }
-
-
-            closeEditForm();
-        } else {
-            alert("Erreur : " + data.message);
-        }
-    })
-    .catch(error => console.error("Erreur lors de la modification :", error));
-}
-
-
-
-
-function openModal(imageSrc) {
-    let modal = document.getElementById("imageModal");
-    let modalImg = document.getElementById("modalContent");
-
-    modalImg.src = imageSrc;
-    modal.style.display = "flex";
-    setTimeout(() => {
-        modal.style.opacity = "1";
-        modalImg.style.transform = "scale(1)";
-    }, 10);
-}
-
-function closeModal() {
-    let modal = document.getElementById("imageModal");
-    let modalImg = document.getElementById("modalContent");
-
-    modal.style.opacity = "0";
-    modalImg.style.transform = "scale(0.5)";
-    setTimeout(() => {
-        modal.style.display = "none";
-    }, 300);
-}
-
-function reportPost(postID) {
-    const reason = prompt("Pourquoi signalez-vous ce post ? (optionnel)");
-    if (reason === null) return;
-
-    const payload = {
-        post_id: Number(postID.toString().trim()),
-        reason: reason.trim()
-    };
-
-    console.log("🔍 ReportPost → typeof postID:", typeof postID, "val:", postID);
-
-
-    fetch("/user/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("Le post a été signalé.");
-        } else {
-            alert("Une erreur est survenue.");
-        }
-    })
-    .catch(() => alert("Erreur réseau."));
-}
-
-
-</script>
