@@ -31,6 +31,8 @@
             <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
             <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
 
+            <button onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
+
             <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
             {{if eq .UserID .CurrentUserID}}
                 <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
@@ -273,6 +275,33 @@ function closeModal() {
     }, 300);
 }
 
+function reportPost(postID) {
+    const reason = prompt("Pourquoi signalez-vous ce post ? (optionnel)");
+    if (reason === null) return;
+
+    const payload = {
+        post_id: Number(postID.toString().trim()),
+        reason: reason.trim()
+    };
+
+    console.log("🔍 ReportPost → typeof postID:", typeof postID, "val:", postID);
+
+
+    fetch("/user/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Le post a été signalé.");
+        } else {
+            alert("Une erreur est survenue.");
+        }
+    })
+    .catch(() => alert("Erreur réseau."));
+}
 
 
 </script>
