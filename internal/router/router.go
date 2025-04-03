@@ -13,28 +13,28 @@ func redirectToHTTPS(w http.ResponseWriter, r *http.Request) {
 }
 
 func Router() {
-	// 📦 Initialisation de la base de données
+	// Initialisation de la base de données
 	database.InitDatabase()
 
-	// 🌍 Routeur principal de configuration des routes
+	// Routeur principal de configuration des routes
 	routeManager := http.NewServeMux()
 
-	// 🔐 Middleware
+	// Middleware
 	requireRole := security.RequireRole
 
-	// 📁 Fichiers statiques
+	// Fichiers statiques
 	routeManager.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../public/static"))))
 
-	// === 🔓 Guest routes ===
+	// Guest routes
 	guestRouter := http.NewServeMux()
 	guestRouter.HandleFunc("/", handlers.Accueil)
 	guestRouter.HandleFunc("/home", handlers.Home)
 	guestRouter.HandleFunc("/image/", handlers.GetImage)
 	routeManager.Handle("/entry/", requireRole("guest", "user", "admin", "moderator")(http.StripPrefix("/entry", guestRouter)))
 
-	// === 🔐 Auth routes ===
+	// Auth routes
 	authRouter := http.NewServeMux()
-	authRouter.Handle("/register",security.RateLimitRegisterByIP(http.HandlerFunc(handlers.Register)))
+	authRouter.Handle("/register", security.RateLimitRegisterByIP(http.HandlerFunc(handlers.Register)))
 	authRouter.Handle("/login", security.RateLimitLoginByIP(security.RateLimitLoginByIdentifier(http.HandlerFunc(handlers.Login))))
 	authRouter.HandleFunc("/logout", handlers.Logout)
 	authRouter.HandleFunc("/unauthorized", handlers.UnauthorizedHandler)
@@ -44,7 +44,7 @@ func Router() {
 	authRouter.HandleFunc("/github/callback", security.GitHubCallback)
 	routeManager.Handle("/auth/", http.StripPrefix("/auth", authRouter))
 
-	// === 👤 User routes ===
+	// User routes
 	userRouter := http.NewServeMux()
 	userRouter.HandleFunc("/profile", handlers.Profile)
 	userRouter.Handle("/create-post", security.RateLimitCreatePost(http.HandlerFunc(handlers.CreatePost)))
@@ -53,26 +53,29 @@ func Router() {
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	userRouter.HandleFunc("/report", handlers.ReportPost)
 	userRouter.HandleFunc("/add-comment", handlers.AddComment)
-
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
-	// === ⚙️ Admin routes ===
+	// Admin routes
 	adminRouter := http.NewServeMux()
 	// Route dashboard (admin + moderateur)
-	adminRouter.HandleFunc("/dashboard", handlers.DashboardHandler)
+	adminRouter.HandleFunc("/dashboard", handlers.Dashboard)
 	adminRouter.HandleFunc("/delete-report", handlers.DeleteReport)
+	adminRouter.HandleFunc("/add-warn", handlers.AddWarn)
+	adminRouter.HandleFunc("/warns", handlers.GetUserWarns)
 
 	// Sous-routes sensibles (admin seul)
 	adminSecure := http.NewServeMux()
 	adminSecure.HandleFunc("/change-role", handlers.ChangeUserRole)
 	adminSecure.HandleFunc("/toggle-ban", security.ToggleBanUser)
+	adminSecure.HandleFunc("/delete-warn", handlers.DeleteWarn)
+
 
 	// On attache les deux avec les bons droits
 	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", adminRouter)))
 	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", adminSecure)))
 
-	// 🧱 Handler final avec fallback 404
-	secureHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Handler final avec fallback 404
+	var secureHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler, pattern := routeManager.Handler(r)
 		if pattern == "" {
 			handlers.NotFoundHandler(w, r)
@@ -81,7 +84,10 @@ func Router() {
 		handler.ServeHTTP(w, r)
 	})
 
-	// 🌐 Redirection HTTP → HTTPS
+	// Appliquer le rate limit global
+	secureHandler = security.RateLimitGlobal(secureHandler)
+
+	// Redirection HTTP → HTTPS
 	go func() {
 		err := http.ListenAndServe(":8080", http.HandlerFunc(redirectToHTTPS))
 		if err != nil {
@@ -89,7 +95,7 @@ func Router() {
 		}
 	}()
 
-	// 🔒 Lancement du serveur HTTPS
+	// Lancement du serveur HTTPS
 	fmt.Println("Serveur HTTPS lancé sur https://localhost:8443")
 	err := http.ListenAndServeTLS(
 		":8443",

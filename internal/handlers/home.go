@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	
 	"html/template"
-	"log"
 	"net/http"
 
 	"Forum/internal/models"
@@ -21,12 +19,9 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 	role, _ := r.Context().Value(security.ContextRoleKey).(string)
 
-	log.Printf("👤 Connexion utilisateur : userID=%s, role=%s", userID, role)
-
 	// Récupération des posts
 	posts, err := models.GetAllPosts()
 	if err != nil {
-		log.Println("❌ Erreur GetAllPosts:", err)
 		http.Error(w, "Erreur de récupération des posts", http.StatusInternalServerError)
 		return
 	}
@@ -38,7 +33,8 @@ func Home(w http.ResponseWriter, r *http.Request) {
 
 		comments, err := models.GetCommentsByPostID(posts[i].ID)
 		if err != nil {
-			log.Printf("⚠️ Erreur GetCommentsByPostID pour post %d : %v", posts[i].ID, err)
+			http.Error(w, "Erreur de récupération des commentaires", http.StatusInternalServerError)
+			return
 		}
 
 		viewData = append(viewData, PostView{
@@ -49,13 +45,13 @@ func Home(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.ParseFiles("../public/template/home.html")
 	if err != nil {
-		log.Println("❌ Erreur de chargement du template :", err)
 		http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 		return
 	}
 
 	err = tmpl.Execute(w, viewData)
 	if err != nil {
-		log.Println("❌ Erreur rendering template :", err)
+		http.Error(w, "Erreur de rendu du template", http.StatusInternalServerError)
+		return
 	}
 }

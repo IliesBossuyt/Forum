@@ -54,14 +54,13 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			// ⛔ Si rôle non autorisé → redirection
+			// Si rôle non autorisé → redirection
 			if !contains(allowedRoles, role) {
-				http.Redirect(w, r, "/auth/unauthorized", http.StatusSeeOther)
-				http.Error(w, "Accès refusé", http.StatusForbidden)
+                http.Redirect(w, r, "/auth/unauthorized", http.StatusSeeOther)
 				return
 			}
 
-			// ✅ Ajout des infos au contexte
+			// Ajout des infos au contexte
 			// Injecter l'utilisateur dans le contexte
 			ctx := context.WithValue(r.Context(), ContextUserIDKey, userID)
 			ctx = context.WithValue(ctx, ContextRoleKey, role)
