@@ -30,10 +30,12 @@
             <button onclick="likePost('{{.Post.ID}}', -1)">👎 Dislike</button>
             <button onclick="reportPost('{{.Post.ID}}')">🚩 Signaler</button>
 
+            <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
             {{if eq .Post.UserID .Post.CurrentUserID}}
                 <button onclick="editPost('{{.Post.ID}}')">✏ Modifier</button>
             {{end}}
 
+            <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
             {{if or (eq .Post.UserID .Post.CurrentUserID) (eq .Post.CurrentUserRole "admin")}}
                 <button onclick="openDeleteForm('{{.Post.ID}}')">🗑 Supprimer</button>
             {{end}}
@@ -61,6 +63,39 @@
             </div>
         </div>
     {{end}}
+
+
+    <!-- Fenêtre modale pour afficher les images en grand -->
+    <div id="imageModal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img id="modalContent">
+    </div>
+
+    <!-- Formulaire de modification de post (caché par défaut) -->
+    <div id="edit-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Modifier le post</h3>
+        <textarea id="edit-content" rows="3" style="width:100%;"></textarea>
+        <input type="hidden" id="edit-post-id">
+        <br>
+        <label for="edit-image">Changer l'image :</label>
+        <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
+        <br>
+        <label><input type="checkbox" id="delete-image"> Supprimer l'image</label>
+        <br>
+        <button onclick="submitEdit()">Enregistrer</button>
+        <button onclick="closeEditForm()">Annuler</button>
+    </div>
+
+    <!-- Fenêtre modale pour confirmer la suppression (style similaire à la modale d'édition) -->
+    <div id="delete-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Confirmer la suppression</h3>
+        <p>Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
+        <input type="hidden" id="delete-post-id">
+        <br>
+        <button onclick="confirmDelete()">🗑 Supprimer</button>
+        <button onclick="closeDeleteForm()">Annuler</button>
+    </div>
+    
 </body>
 </html>
 
