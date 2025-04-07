@@ -30,7 +30,10 @@ func Router() {
 	guestRouter.HandleFunc("/", handlers.Accueil)
 	guestRouter.HandleFunc("/home", handlers.Home)
 	guestRouter.HandleFunc("/image/", handlers.GetImage)
-	routeManager.Handle("/entry/", requireRole("guest", "user", "admin", "moderator")(http.StripPrefix("/entry", guestRouter)))
+	routeManager.Handle("/entry/", requireRole("guest", "user", "admin", "moderator")(
+		http.StripPrefix("/entry", handlers.WithNotFoundFallback(guestRouter)),
+	))
+	
 
 	// Auth routes
 	authRouter := http.NewServeMux()
@@ -42,7 +45,8 @@ func Router() {
 	authRouter.HandleFunc("/google/callback", security.GoogleCallback)
 	authRouter.HandleFunc("/github/login", security.GitHubLogin)
 	authRouter.HandleFunc("/github/callback", security.GitHubCallback)
-	routeManager.Handle("/auth/", http.StripPrefix("/auth", authRouter))
+	routeManager.Handle("/auth/", http.StripPrefix("/auth", handlers.WithNotFoundFallback(authRouter)))
+
 
 	// User routes
 	userRouter := http.NewServeMux()
@@ -53,7 +57,8 @@ func Router() {
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	userRouter.HandleFunc("/report", handlers.ReportPost)
 	userRouter.HandleFunc("/add-comment", handlers.AddComment)
-	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
+	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", handlers.WithNotFoundFallback(userRouter))))
+
 
 	// Admin routes
 	adminRouter := http.NewServeMux()
@@ -71,8 +76,9 @@ func Router() {
 
 
 	// On attache les deux avec les bons droits
-	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", adminRouter)))
-	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", adminSecure)))
+	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", handlers.WithNotFoundFallback(adminRouter))))
+	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", handlers.WithNotFoundFallback(adminSecure))))
+
 
 	// Handler final avec fallback 404
 	var secureHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

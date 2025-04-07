@@ -26,7 +26,6 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID, role string
 			role = "guest" // Valeur par défaut pour les visiteurs
-			role = "guest" // Par défaut
 
 			cookie, err := r.Cookie("session")
 			if err == nil {

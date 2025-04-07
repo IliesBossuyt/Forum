@@ -5,12 +5,13 @@ import (
 	"net/http"
 )
 
+// On vérifie que l'URL est bien exactement "/"
 func Accueil(w http.ResponseWriter, r *http.Request) {
-	// Correction du chemin du template
+	if r.URL.Path != "/" {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	tmpl := template.Must(template.ParseFiles("../public/template/accueil.html"))
-
-	data := struct{}{}
-
-	tmpl.Execute(w, data)
-
+	tmpl.Execute(w, nil)
 }
