@@ -4,7 +4,7 @@ import (
 	"Forum/internal/database"
 )
 
-// Ajouter ou modifier un like/dislike
+// Ajouter ou modifier un like/dislike sur les posts
 func ToggleLike(userID string, postID int, value int) error {
 	// Vérifier si l'utilisateur a déjà liké ou disliké ce post
 	var existingValue int
