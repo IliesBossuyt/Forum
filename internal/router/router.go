@@ -56,9 +56,9 @@ func Router() {
 	userRouter.HandleFunc("/edit-post", handlers.EditPost)
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	userRouter.HandleFunc("/report", handlers.ReportPost)
-	userRouter.HandleFunc("/add-comment", handlers.AddComment)
-	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", handlers.WithNotFoundFallback(userRouter))))
-
+	userRouter.HandleFunc("/comment", handlers.PostComment)
+	userRouter.HandleFunc("/like-comment", handlers.LikeComment)
+	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes
 	adminRouter := http.NewServeMux()

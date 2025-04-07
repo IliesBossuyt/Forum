@@ -8,11 +8,6 @@ import (
 	"Forum/internal/security"
 )
 
-type PostView struct {
-	Post     models.Post
-	Comments []models.Comment
-}
-
 // Gestion de la page d'accueil (forum)
 func Home(w http.ResponseWriter, r *http.Request) {
 	// Récupérer userID et rôle depuis le middleware
@@ -26,32 +21,39 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var viewData []PostView
+	// Associer les commentaires à chaque post
 	for i := range posts {
-		posts[i].CurrentUserID = userID
-		posts[i].CurrentUserRole = role
-
-		comments, err := models.GetCommentsByPostID(posts[i].ID)
+		comments, err := models.GetCommentsByPostID(posts[i].ID, userID)
 		if err != nil {
 			http.Error(w, "Erreur de récupération des commentaires", http.StatusInternalServerError)
 			return
 		}
-
-		viewData = append(viewData, PostView{
-			Post:     posts[i],
-			Comments: comments,
-		})
+		posts[i].Comments = comments
+		posts[i].CurrentUserID = userID
+		posts[i].CurrentUserRole = role
 	}
 
+	// Struct pour passer au template
+	data := struct {
+		UserID string
+		Role   string
+		Posts  []models.Post
+	}{
+		UserID: userID,
+		Role:   role,
+		Posts:  posts,
+	}
+
+	// Chargement du template HTML
 	tmpl, err := template.ParseFiles("../public/template/home.html")
 	if err != nil {
 		http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 		return
 	}
 
-	err = tmpl.Execute(w, viewData)
+	// Exécution du template avec les données
+	err = tmpl.Execute(w, data)
 	if err != nil {
-		http.Error(w, "Erreur de rendu du template", http.StatusInternalServerError)
-		return
+		http.Error(w, "Erreur d'exécution du template", http.StatusInternalServerError)
 	}
 }

@@ -217,6 +217,7 @@ var RateLimitCreatePost = NewRateLimitMiddleware(5, time.Minute, func(r *http.Re
 	return "createpost-userid:" + UserIDFromContext(r)
 })
 
-var RateLimitGlobal = NewRateLimitMiddleware(200, time.Second, func(r *http.Request) string {
+// Middleware global
+var RateLimitGlobal = NewRateLimitMiddleware(300, time.Second, func(r *http.Request) string {
 	return "global:" + GetIP(r)
 })
