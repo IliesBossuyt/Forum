@@ -2,36 +2,31 @@ package models
 
 import (
 	"Forum/internal/database"
-	"log"
 	"time"
 )
 
 type Comment struct {
-	ID        int
-	PostID    int
-	UserID    string
-	Username  string
-	Content   string
-	CreatedAt time.Time
+	ID            int
+	PostID        int
+	UserID        string
+	Username      string
+	Content       string
+	CreatedAt     string
+	Likes         int
+	Dislikes      int
+	CurrentUserID string
 }
 
-// Insérer un commentaire dans la base
-func InsertComment(userID string, postID int, content string) error {
-	_, err := database.DB.Exec(
-		`INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)`,
-		postID, userID, content,
-	)
-	return err
-}
-
-// Récupérer les commentaires d'un post (avec nom d'utilisateur)
-func GetCommentsByPostID(postID int) ([]Comment, error) {
+func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	rows, err := database.DB.Query(`
-		SELECT comments.id, comments.post_id, comments.user_id, users.username, comments.content, comments.created_at
-		FROM comments
-		JOIN users ON comments.user_id = users.id
-		WHERE comments.post_id = ?
-		ORDER BY comments.created_at DESC
+		SELECT c.id, c.post_id, c.author_id, u.username, c.content, c.created_at,
+			COALESCE(SUM(CASE WHEN cl.user_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS likes
+		FROM comments c
+		JOIN users u ON c.author_id = u.id
+		LEFT JOIN comment_likes cl ON c.id = cl.comment_id
+		WHERE c.post_id = ?
+		GROUP BY c.id
+		ORDER BY c.created_at ASC
 	`, postID)
 	if err != nil {
 		return nil, err
@@ -41,12 +36,27 @@ func GetCommentsByPostID(postID int) ([]Comment, error) {
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
-		err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt)
+		var rawTime time.Time
+		err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt, &c.Likes)
 		if err != nil {
-			log.Println("Erreur lecture commentaire:", err)
-			continue
+			return nil, err
 		}
+		c.CreatedAt = rawTime.Format("02/01/2006 15:04")
 		comments = append(comments, c)
 	}
 	return comments, nil
+}
+
+func InsertComment(postID int, userID, content string) error {
+	_, err := database.DB.Exec("INSERT INTO comments (post_id, author_id, content) VALUES (?, ?, ?)", postID, userID, content)
+	return err
+}
+
+func DeleteComment(commentID int) error {
+	_, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id = ?", commentID)
+	if err != nil {
+		return err
+	}
+	_, err = database.DB.Exec("DELETE FROM comments WHERE id = ?", commentID)
+	return err
 }

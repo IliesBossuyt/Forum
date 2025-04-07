@@ -49,11 +49,11 @@ func Router() {
 	userRouter.HandleFunc("/profile", handlers.Profile)
 	userRouter.Handle("/create-post", security.RateLimitCreatePost(http.HandlerFunc(handlers.CreatePost)))
 	userRouter.HandleFunc("/like", handlers.LikePost)
-	userRouter.HandleFunc("/like-comment", handlers.LikeComment)
 	userRouter.HandleFunc("/edit-post", handlers.EditPost)
 	userRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	userRouter.HandleFunc("/report", handlers.ReportPost)
-	userRouter.HandleFunc("/add-comment", handlers.AddComment)
+	userRouter.HandleFunc("/comment", handlers.PostComment)
+	userRouter.HandleFunc("/like-comment", handlers.LikeComment)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes

@@ -1,28 +1,28 @@
 package handlers
 
 import (
-	"encoding/json"
-	"net/http"
-
 	"Forum/internal/models"
 	"Forum/internal/security"
+	"encoding/json"
+	"net/http"
 )
 
-// Handler pour liker/disliker un commentaire
 func LikeComment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Récupérer userID depuis le contexte
+	// Récupération de l'ID utilisateur depuis le contexte
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 
+	// Structure d'entrée attendue
 	var input struct {
 		CommentID int `json:"comment_id"`
-		Value     int `json:"value"` // 1 = like, -1 = dislike
+		Value     int `json:"value"` // 1 pour like, -1 pour dislike
 	}
 
+	// Décodage du corps JSON
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		http.Error(w, "Données invalides", http.StatusBadRequest)
@@ -32,23 +32,22 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 	// Appliquer le like/dislike
 	err = models.ToggleCommentLike(userID, input.CommentID, input.Value)
 	if err != nil {
-		http.Error(w, "Erreur lors du like/dislike du commentaire", http.StatusInternalServerError)
+		http.Error(w, "Erreur lors du traitement du like", http.StatusInternalServerError)
 		return
 	}
 
-	// Récupérer les nouveaux totaux
+	// Récupérer les nouveaux likes/dislikes
 	likes, dislikes, err := models.GetCommentLikes(input.CommentID)
 	if err != nil {
-		http.Error(w, "Erreur récupération likes commentaires", http.StatusInternalServerError)
+		http.Error(w, "Erreur lors de la récupération des likes", http.StatusInternalServerError)
 		return
 	}
 
 	// Réponse JSON
-	response := map[string]interface{}{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
 		"likes":    likes,
 		"dislikes": dislikes,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }

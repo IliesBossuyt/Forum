@@ -15,18 +15,19 @@ type Post struct {
 	Dislikes        int
 	CurrentUserID   string
 	CurrentUserRole string
+	Comments        []Comment
 }
 
 // Récupérer tous les posts
 func GetAllPosts() ([]Post, error) {
-	rows, err := database.DB.Query(`
+		rows, err := database.DB.Query(`
 		SELECT posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at,
-		       COALESCE(SUM(CASE WHEN likes.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
-		       COALESCE(SUM(CASE WHEN likes.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
+			COALESCE(SUM(CASE WHEN likes.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
+			COALESCE(SUM(CASE WHEN likes.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
 		FROM posts
 		JOIN users ON posts.user_id = users.id
 		LEFT JOIN likes ON posts.id = likes.post_id
-		GROUP BY posts.id
+		GROUP BY posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at
 		ORDER BY posts.created_at DESC
 	`)
 	if err != nil {

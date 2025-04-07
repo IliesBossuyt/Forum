@@ -16,60 +16,56 @@
     </form>
 
     <h3>Publications récentes</h3>
-    {{range .}}
-        <div id="post-{{.Post.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
-            <p><strong>Posté par :</strong> {{.Post.Username}}</p>
-            <p id="content-{{.Post.ID}}">{{.Post.Content}}</p>
-            {{if .Post.Image}}
-                <img src="/entry/image/{{.Post.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.Post.ID}}')">
+    {{range .Posts}}
+        <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
+            <p><strong>Posté par :</strong> {{.Username}}</p>
+            <p id="content-{{.ID}}">{{.Content}}</p>
+            {{if .Image}}
+                <img src="/entry/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.ID}}')">
             {{end}}
             
             <!-- Affichage des likes et dislikes-->
-            <p>👍 <span id="likes-{{.Post.ID}}">{{.Post.Likes}}</span> | 👎 <span id="dislikes-{{.Post.ID}}">{{.Post.Dislikes}}</span></p>
-            <button onclick="likePost('{{.Post.ID}}', 1)">👍 Like</button>
-            <button onclick="likePost('{{.Post.ID}}', -1)">👎 Dislike</button>
-            <button onclick="reportPost('{{.Post.ID}}')">🚩 Signaler</button>
+            <p>👍 <span id="likes-{{.ID}}">{{.Likes}}</span> | 👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></p>
+            <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
+            <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+            <button onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
 
             <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
-            {{if eq .Post.UserID .Post.CurrentUserID}}
-                <button onclick="editPost('{{.Post.ID}}')">✏ Modifier</button>
+            {{if eq .UserID .CurrentUserID}}
+                <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
             {{end}}
 
             <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
-            {{if or (eq .Post.UserID .Post.CurrentUserID) (eq .Post.CurrentUserRole "admin")}}
-                <button onclick="openDeleteForm('{{.Post.ID}}')">🗑 Supprimer</button>
+            {{if or (eq .UserID .CurrentUserID) (eq .CurrentUserRole "admin")}}
+                <button onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
             {{end}}
 
-            <!-- Bouton toggle commentaires -->
-            <button onclick="toggleComments('{{.Post.ID}}')">Afficher / Masquer les commentaires</button>
 
-            <!-- Commentaires -->
-            <div id="comments-{{.Post.ID}}" style="margin-top: 10px; display: none;">
-                <h4>Commentaires :</h4>
+            <!-- Bouton Afficher/Masquer les commentaires -->
+            <button onclick="toggleComments('{{.ID}}')">💬 Commentaires</button>
 
-                <div id="comment-list-{{.Post.ID}}">
-                    {{if .Comments}}
-                        {{range .Comments}}
-                            <div class="comment" id="comment-{{.ID}}">
-                                <strong>{{.Username}}</strong> : {{.Content}}<br>
-                                <small>{{.CreatedAt}}</small><br>
-
-                                <!-- Like/Dislike -->
-                                <p>👍 <span id="likes-{{.ID}}">{{.Likes}}</span> | 👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></p>
-                                <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
-                                <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
-                            </div>
-                        {{end}}
-                    {{else}}
-                        <p>Aucun commentaire.</p>
+            <!-- Zone de commentaires -->
+            <div id="comments-{{.ID}}" style="display:none; margin-top: 10px; padding-left: 15px;">
+                {{ $post := . }}
+                {{if .Comments}}
+                    {{range .Comments}}
+                        <div style="border: 1px dashed #ccc; margin-bottom: 8px; padding: 5px;">
+                            <p><strong>{{.Username}}</strong> : {{.Content}}</p>
+                            <small style="color: #aaa;">Posté le {{.CreatedAt}}</small><br>                            
+                            <p>
+                                👍 <span id="comment-like-{{.ID}}">{{.Likes}}</span>
+                                | 👎 <span id="comment-dislike-{{.ID}}">{{.Dislikes}}</span>
+                            </p>
+                            <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
+                            <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>                            
+                        </div>
                     {{end}}
-                </div>
+                {{end}}
+                
 
                 <!-- Formulaire d'ajout de commentaire -->
-                <form onsubmit="submitComment(event, '{{.Post.ID}}')">
-                    <textarea id="comment-content-{{.Post.ID}}" rows="2" style="width: 100%;" required></textarea><br>
-                    <button type="submit">Commenter</button>
-                </form>
+                <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..." rows="2" style="width: 100%;"></textarea>
+                <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
             </div>
         </div>
     {{end}}
@@ -137,7 +133,7 @@ function openDeleteForm(postID) {
     modal.style.display = "block";
 }
 
-// Ferme la fenêtre modale de suppression
+// Ferme la fenêtre modale de suppression   
 function closeDeleteForm() {
     let modal = document.getElementById("delete-form");
     modal.style.display = "none";
@@ -333,94 +329,90 @@ function reportPost(postID) {
     .catch(() => alert("Erreur réseau."));
 }
 
-// Afficher les commentaires
+
+
 function toggleComments(postID) {
-    const commentSection = document.getElementById(`comments-${postID}`);
-    if (commentSection.style.display === "none") {
-        commentSection.style.display = "block";
+    const section = document.getElementById("comments-" + postID);
+    if (section.style.display === "none") {
+        section.style.display = "block";
     } else {
-        commentSection.style.display = "none";
+        section.style.display = "none";
     }
 }
 
-// Envoyer un commentaire
-function submitComment(event, postID) {
-    event.preventDefault(); // Empêche le rechargement
-
-    const textarea = document.getElementById(`comment-content-${postID}`);
+function submitComment(postID) {
+    const textarea = document.getElementById("comment-content-" + postID);
     const content = textarea.value.trim();
-
     if (!content) {
-        alert("Le commentaire ne peut pas être vide.");
+        alert("Veuillez écrire un commentaire.");
         return;
     }
 
-    fetch("/user/add-comment", {
+    fetch("/user/comment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-            post_id: parseInt(postID, 10),
+            post_id: Number(postID),
             content: content
         })
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            const commentID = data.comment_id;
+        if (data.success && data.comment) { 
+            const commentSection = document.getElementById("comments-" + postID);
 
-            // Crée un bloc complet avec like/dislike et compteurs
-            const commentBlock = document.createElement("div");
-            commentBlock.className = "comment";
-            commentBlock.id = `comment-${commentID}`;
-            commentBlock.innerHTML = `
-                <strong>${data.username}</strong> : ${content}<br>
-                <small>${data.created_at}</small><br>
-                <p>
-                    👍 <span id="comment-likes-${commentID}">0</span> |
-                    👎 <span id="comment-dislikes-${commentID}">0</span>
-                </p>
-                <button onclick="likeComment('${commentID}', 1)">👍 Like</button>
-                <button onclick="likeComment('${commentID}', -1)">👎 Dislike</button>
+            const div = document.createElement("div");
+            div.style.border = "1px dashed #ccc";
+            div.style.marginBottom = "8px";
+            div.style.padding = "5px";
+
+            div.innerHTML = `
+                <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
+                <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
+                <button onclick="likeComment('${data.comment.id}', '${postID}')">
+                    👍 <span id="comment-like-${data.comment.id}">0</span>
+                </button>
             `;
 
-            // Ajoute avant le formulaire
-            const commentsContainer = document.getElementById(`comment-list-${postID}`);
-            const form = document.querySelector(`#comments-${postID} form`);
-            commentsContainer.appendChild(commentBlock);
+            commentSection.insertBefore(div, textarea);
 
             textarea.value = "";
         } else {
-            alert("Erreur : " + data.message);
+            alert("Erreur : " + (data.message || "Ajout impossible"));
         }
     })
-    .catch(err => {
-        console.error("Erreur lors de l'ajout du commentaire :", err);
-        alert("Erreur réseau.");
+    .catch(() => {
+        alert("Erreur réseau ou serveur");
     });
 }
 
 
 
-// Like comment
 function likeComment(commentID, value) {
-    fetch('/user/like-comment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment_id: parseInt(commentID, 10), value: value })
+    fetch("/user/like-comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            comment_id: parseInt(commentID, 10), // ✅ force en entier
+            value: value
+        })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            document.getElementById(`comment-likes-${commentID}`).innerText = data.likes;
-            document.getElementById(`comment-dislikes-${commentID}`).innerText = data.dislikes;
+            document.getElementById("comment-like-" + commentID).innerText = data.likes;
+            document.getElementById("comment-dislike-" + commentID).innerText = data.dislikes;
         } else {
-            alert("Erreur : " + data.message);
+            alert("Erreur lors du like/dislike du commentaire.");
         }
     })
-    .catch(err => {
-        console.error("Erreur lors du like/dislike du commentaire :", err);
-        alert("Erreur réseau.");
-    });
+    .catch(() => alert("Erreur réseau"));
 }
+
+
+
+
 
 </script>

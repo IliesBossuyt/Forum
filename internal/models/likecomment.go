@@ -2,7 +2,6 @@ package models
 
 import "Forum/internal/database"
 
-// Like ou Dislike un commentaire (ou annule si déjà fait)
 func ToggleCommentLike(userID string, commentID int, value int) error {
 	var existingValue int
 	err := database.DB.QueryRow(
@@ -10,30 +9,33 @@ func ToggleCommentLike(userID string, commentID int, value int) error {
 	).Scan(&existingValue)
 
 	if err == nil {
+		// L'utilisateur a déjà liké ou disliké
 		if existingValue == value {
+			// Même valeur, on supprime (toggle off)
 			_, err = database.DB.Exec("DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?", userID, commentID)
 			return err
 		}
+
+		// Valeur différente, on met à jour
 		_, err = database.DB.Exec("UPDATE comment_likes SET value = ? WHERE user_id = ? AND comment_id = ?", value, userID, commentID)
 		return err
 	}
 
+	// Aucun like existant, on insère
 	_, err = database.DB.Exec("INSERT INTO comment_likes (user_id, comment_id, value) VALUES (?, ?, ?)", userID, commentID, value)
 	return err
 }
 
-// Récupère le total de likes / dislikes d’un commentaire
+// Dans models/comment.go
 func GetCommentLikes(commentID int) (int, int, error) {
 	var likes, dislikes int
 	err := database.DB.QueryRow(`
 		SELECT 
-			COALESCE(SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END), 0) AS likes,
-			COALESCE(SUM(CASE WHEN value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
-		FROM comment_likes WHERE comment_id = ?
+			COALESCE(SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN value = -1 THEN 1 ELSE 0 END), 0)
+		FROM comment_likes
+		WHERE comment_id = ?
 	`, commentID).Scan(&likes, &dislikes)
 
-	if err != nil {
-		return 0, 0, err
-	}
-	return likes, dislikes, nil
+	return likes, dislikes, err
 }
