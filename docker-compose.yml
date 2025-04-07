@@ -1,15 +1,16 @@
-version: "3.9"
+version: '3.8'
+
 services:
-  db:
+  mysql:
     image: mysql:8.0
-    container_name: my-forum-db
+    container_name: forum-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: forumdb
       MYSQL_USER: forumuser
       MYSQL_PASSWORD: forumpassword
-      MYSQL_DATABASE: forumdb
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql
+      - ./internal/database/dump.sql:/docker-entrypoint-initdb.d/init.sql
