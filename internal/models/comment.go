@@ -18,9 +18,16 @@ type Comment struct {
 }
 
 func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
-	rows, err := database.DB.Query(`
-		SELECT c.id, c.post_id, c.author_id, u.username, c.content, c.created_at,
-			COALESCE(SUM(CASE WHEN cl.user_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS likes
+		rows, err := database.DB.Query(`
+		SELECT 
+			c.id, 
+			c.post_id, 
+			c.author_id, 
+			u.username, 
+			c.content, 
+			c.created_at,
+			COALESCE(SUM(CASE WHEN cl.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
+			COALESCE(SUM(CASE WHEN cl.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
 		FROM comments c
 		JOIN users u ON c.author_id = u.id
 		LEFT JOIN comment_likes cl ON c.id = cl.comment_id
@@ -37,19 +44,38 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	for rows.Next() {
 		var c Comment
 		var rawTime time.Time
-		err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt, &c.Likes)
+	
+		err := rows.Scan(
+			&c.ID, &c.PostID, &c.UserID, &c.Username,
+			&c.Content, &rawTime,
+			&c.Likes, &c.Dislikes,
+		)
 		if err != nil {
 			return nil, err
 		}
+	
 		c.CreatedAt = rawTime.Format("02/01/2006 15:04")
 		comments = append(comments, c)
-	}
+	}	
 	return comments, nil
 }
 
-func InsertComment(postID int, userID, content string) error {
-	_, err := database.DB.Exec("INSERT INTO comments (post_id, author_id, content) VALUES (?, ?, ?)", postID, userID, content)
-	return err
+func InsertComment(postID int, userID, content string) (int64, error) {
+	result, err := database.DB.Exec(`
+		INSERT INTO comments (post_id, author_id, content)
+		VALUES (?, ?, ?)
+	`, postID, userID, content)
+	if err != nil {
+		return 0, err
+	}
+
+	// Récupère l'ID du commentaire inséré
+	lastID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return lastID, nil
 }
 
 func DeleteComment(commentID int) error {
@@ -59,4 +85,10 @@ func DeleteComment(commentID int) error {
 	}
 	_, err = database.DB.Exec("DELETE FROM comments WHERE id = ?", commentID)
 	return err
+}
+
+func GetCommentAuthorID(commentID int) (string, error) {
+	var authorID string
+	err := database.DB.QueryRow("SELECT author_id FROM comments WHERE id = ?", commentID).Scan(&authorID)
+	return authorID, err
 }

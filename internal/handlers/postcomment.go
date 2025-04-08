@@ -27,15 +27,16 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insertion du commentaire
-	if err := models.InsertComment(input.PostID, userID, input.Content); err != nil {
+	// Insertion et récupération de l'ID
+	commentID, err := models.InsertComment(input.PostID, userID, input.Content)
+	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du commentaire", http.StatusInternalServerError)
 		return
 	}
 
 	// Récupération du username
 	var username string
-	err := database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	err = database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			username = "Utilisateur inconnu"
@@ -49,9 +50,11 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"comment": map[string]interface{}{
+			"id":        commentID,
 			"content":   input.Content,
 			"username":  username,
 			"createdAt": time.Now().Format("02/01/2006 à 15:04"),
+			"canDelete": true, // c’est l'auteur
 		},
 	})
 }

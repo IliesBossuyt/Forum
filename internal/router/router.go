@@ -58,6 +58,7 @@ func Router() {
 	userRouter.HandleFunc("/report", handlers.ReportPost)
 	userRouter.HandleFunc("/comment", handlers.PostComment)
 	userRouter.HandleFunc("/like-comment", handlers.LikeComment)
+	userRouter.HandleFunc("/delete-comment", handlers.DeleteComment)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes

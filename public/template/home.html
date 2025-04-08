@@ -31,12 +31,12 @@
             <button onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
 
             <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
-            {{if eq .UserID .CurrentUserID}}
+            {{if eq .UserID $.UserID}}
                 <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
             {{end}}
 
             <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
-            {{if or (eq .UserID .CurrentUserID) (eq .CurrentUserRole "admin")}}
+            {{if or (eq .UserID $.UserID) (eq $.Role "admin")}}
                 <button onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
             {{end}}
 
@@ -49,7 +49,7 @@
                 {{ $post := . }}
                 {{if .Comments}}
                     {{range .Comments}}
-                        <div style="border: 1px dashed #ccc; margin-bottom: 8px; padding: 5px;">
+                        <div id="comment-{{.ID}}" style="border: 1px dashed #ccc; margin-bottom: 8px; padding: 5px;">
                             <p><strong>{{.Username}}</strong> : {{.Content}}</p>
                             <small style="color: #aaa;">Posté le {{.CreatedAt}}</small><br>                            
                             <p>
@@ -57,7 +57,11 @@
                                 | 👎 <span id="comment-dislike-{{.ID}}">{{.Dislikes}}</span>
                             </p>
                             <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
-                            <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>                            
+                            <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
+                            
+                            {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
+                                <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
+                            {{end}}                                            
                         </div>
                     {{end}}
                 {{end}}
@@ -101,6 +105,17 @@
         <button onclick="confirmDelete()">🗑 Supprimer</button>
         <button onclick="closeDeleteForm()">Annuler</button>
     </div>
+
+    <!-- Fenêtre modale pour confirmer la suppression d’un commentaire -->
+    <div id="delete-comment-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Confirmer la suppression</h3>
+        <p>Voulez-vous vraiment supprimer ce commentaire ? Cette action est irréversible.</p>
+        <input type="hidden" id="delete-comment-id">
+        <br>
+        <button onclick="confirmDeleteComment()">🗑 Supprimer</button>
+        <button onclick="closeDeleteCommentForm()">Annuler</button>
+    </div>
+
     
 </body>
 </html>
@@ -360,29 +375,34 @@ function submitComment(postID) {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success && data.comment) { 
-            const commentSection = document.getElementById("comments-" + postID);
+    if (data.success && data.comment) {
+        const commentSection = document.getElementById("comments-" + postID);
+        const textarea = document.getElementById("comment-content-" + postID);
 
-            const div = document.createElement("div");
-            div.style.border = "1px dashed #ccc";
-            div.style.marginBottom = "8px";
-            div.style.padding = "5px";
+        const div = document.createElement("div");
+        div.id = `comment-${data.comment.id}`;
+        div.style.border = "1px dashed #ccc";
+        div.style.marginBottom = "8px";
+        div.style.padding = "5px";
 
-            div.innerHTML = `
-                <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
-                <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
-                <button onclick="likeComment('${data.comment.id}', '${postID}')">
-                    👍 <span id="comment-like-${data.comment.id}">0</span>
-                </button>
-            `;
+        div.innerHTML = `
+            <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
+            <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
+            <p>
+                👍 <span id="comment-like-${data.comment.id}">0</span>
+                | 👎 <span id="comment-dislike-${data.comment.id}">0</span>
+            </p>
+            <button onclick="likeComment('${data.comment.id}', 1)">👍 Like</button>
+            <button onclick="likeComment('${data.comment.id}', -1)">👎 Dislike</button>
+            ${data.comment.canDelete ? `<button onclick="deleteComment('${data.comment.id}')">🗑 Supprimer</button>` : ""}
+        `;
 
-            commentSection.insertBefore(div, textarea);
-
-            textarea.value = "";
-        } else {
-            alert("Erreur : " + (data.message || "Ajout impossible"));
-        }
-    })
+        commentSection.insertBefore(div, textarea);
+        textarea.value = "";
+    } else {
+        alert("Erreur : " + (data.message || "Ajout impossible"));
+    }
+})
     .catch(() => {
         alert("Erreur réseau ou serveur");
     });
@@ -412,6 +432,38 @@ function likeComment(commentID, value) {
 }
 
 
+
+function deleteComment(commentID) {
+    document.getElementById("delete-comment-id").value = commentID;
+    document.getElementById("delete-comment-form").style.display = "block";
+}
+
+function closeDeleteCommentForm() {
+    document.getElementById("delete-comment-form").style.display = "none";
+}
+
+function confirmDeleteComment() {
+    const commentID = document.getElementById("delete-comment-id").value;
+
+    fetch("/user/delete-comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment_id: parseInt(commentID, 10) })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const div = document.getElementById("comment-" + commentID);
+            if (div) div.remove();
+        } else {
+            alert("Erreur lors de la suppression du commentaire.");
+        }
+    })
+    .catch(() => alert("Erreur réseau"))
+    .finally(() => {
+        closeDeleteCommentForm();
+    });
+}
 
 
 
