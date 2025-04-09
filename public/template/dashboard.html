@@ -48,7 +48,7 @@
         {{end}}
     </table>
 
-    <h3>Signalements récents</h3>
+    <h3>Posts signalés</h3>
     <ul>
         {{range .Reports}}
         <li style="margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 15px;">
@@ -70,10 +70,40 @@
             <button class="ban-post-author-btn" data-userid="{{.PostAuthorID}}">
                 Bannir l'auteur du post
             </button>
-            
+
+            <button class="delete-post-btn" data-postid="{{.PostID}}">
+                Supprimer le post
+            </button>            
         </li>
         {{end}}
     </ul>
+
+    <h3>Commentaires signalés</h3>
+        <ul>
+            {{range .CommentReports}}
+            <li style="margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 15px;">
+                <strong>Commentaire signalé</strong><br>
+                <strong>Contenu :</strong> "{{.CommentText}}"<br>
+                <strong>Auteur :</strong> {{.CommentAuthor}}<br>
+                <strong>Signalé par :</strong> {{.Reporter}}<br>
+                <strong>Raison :</strong> {{.Reason}}<br>
+                <strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}<br><br>
+                
+                <button class="delete-comment-report-btn" data-reportid="{{.ID}}">
+                    Supprimer le signalement
+                </button>
+
+                <button class="ban-comment-author-btn" data-userid="{{.CommentAuthorID}}">
+                    Bannir l'auteur du commentaire
+                </button>
+
+                <button class="delete-comment-btn" data-commentid="{{.CommentID}}">
+                    Supprimer le commentaire
+                </button>                
+            </li>
+            {{end}}
+        </ul>
+
 
     <!-- Fenêtre modale pour afficher les images en grand -->
     <div id="imageModal" onclick="closeModal()">
@@ -87,7 +117,7 @@
         <textarea id="warnReason" placeholder="Raison du warn..." rows="3" style="width:100%;"></textarea><br>
         <button id="addWarnBtn">Ajouter un avertissement</button>
         <button onclick="closeWarnModal()">Fermer</button>
-    </div>    
+    </div>
     
 
 </body>
@@ -95,52 +125,21 @@
 
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".update-role-btn").forEach(button => {
-            button.addEventListener("click", function () {
-                let userID = this.getAttribute("data-userid");
-                let newRole = document.getElementById(`role-${userID}`).value;
-
-                fetch('/admin/secure/change-role', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userID, role: newRole })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("Rôle mis à jour avec succès !");
-                    } else {
-                        alert("Erreur : " + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error("Erreur :", error);
-                    alert("Une erreur est survenue.");
-                });
-            });
-        });
-    });
-
-
-    // Bannir / Débannir
-    document.querySelectorAll(".ban-toggle-btn").forEach(button => {
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".update-role-btn").forEach(button => {
         button.addEventListener("click", function () {
             let userID = this.getAttribute("data-userid");
-            let isBanned = this.getAttribute("data-banned") === "true";
-            let newBannedState = !isBanned;
+            let newRole = document.getElementById(`role-${userID}`).value;
 
-            fetch('/admin/secure/toggle-ban', {
+            fetch('/admin/secure/change-role', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userID, banned: newBannedState })
+                body: JSON.stringify({ user_id: userID, role: newRole })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    this.innerText = newBannedState ? "Débannir" : "Bannir";
-                    this.setAttribute("data-banned", newBannedState.toString());
-                    alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+                    alert("Rôle mis à jour avec succès !");
                 } else {
                     alert("Erreur : " + data.message);
                 }
@@ -151,186 +150,315 @@
             });
         });
     });
+});
 
-    function openModal(imageSrc) {
+
+// Bannir / Débannir
+document.querySelectorAll(".ban-toggle-btn").forEach(button => {
+    button.addEventListener("click", function () {
+        let userID = this.getAttribute("data-userid");
+        let isBanned = this.getAttribute("data-banned") === "true";
+        let newBannedState = !isBanned;
+
+        fetch('/admin/secure/toggle-ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userID, banned: newBannedState })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.innerText = newBannedState ? "Débannir" : "Bannir";
+                this.setAttribute("data-banned", newBannedState.toString());
+                alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Erreur :", error);
+            alert("Une erreur est survenue.");
+        });
+    });
+});
+
+function openModal(imageSrc) {
+let modal = document.getElementById("imageModal");
+let modalImg = document.getElementById("modalContent");
+
+modalImg.src = imageSrc;
+modal.style.display = "flex";
+setTimeout(() => {
+    modal.style.opacity = "1";
+    modalImg.style.transform = "scale(1)";
+}, 10);
+}
+
+function closeModal() {
     let modal = document.getElementById("imageModal");
     let modalImg = document.getElementById("modalContent");
 
-    modalImg.src = imageSrc;
-    modal.style.display = "flex";
+    modal.style.opacity = "0";
+    modalImg.style.transform = "scale(0.5)";
     setTimeout(() => {
-        modal.style.opacity = "1";
-        modalImg.style.transform = "scale(1)";
-    }, 10);
+        modal.style.display = "none";
+    }, 300);
 }
 
-    function closeModal() {
-        let modal = document.getElementById("imageModal");
-        let modalImg = document.getElementById("modalContent");
+// Supprimer un signalement
+document.querySelectorAll(".delete-report-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const reportIDString = button.getAttribute("data-reportid");
+        const reportID = parseInt(reportIDString, 10);
 
-        modal.style.opacity = "0";
-        modalImg.style.transform = "scale(0.5)";
-        setTimeout(() => {
-            modal.style.display = "none";
-        }, 300);
-    }
+        if (!confirm("Supprimer ce signalement ?")) return;
 
-    // Supprimer un signalement
-    document.querySelectorAll(".delete-report-btn").forEach(button => {
-        button.addEventListener("click", () => {
-            const reportIDString = button.getAttribute("data-reportid");
-            const reportID = parseInt(reportIDString, 10);
-
-            if (!confirm("Supprimer ce signalement ?")) return;
-
-            fetch("/admin/delete-report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ report_id: reportID }) 
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Signalement supprimé !");
-                    location.reload();
-                } else {
-                    alert("Erreur : " + data.message);
-                }
-            });
-        });
-    });
-
-    // Bannir l'auteur du post signalé
-    document.querySelectorAll(".ban-post-author-btn").forEach(button => {
-        button.addEventListener("click", () => {
-            const userID = button.getAttribute("data-userid");
-            if (!confirm("Bannir cet utilisateur ?")) return;
-
-            fetch("/admin/secure/toggle-ban", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: userID, banned: true })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Utilisateur banni !");
-                    location.reload();
-                } else {
-                    alert("Erreur : " + data.message);
-                }
-            });
-        });
-    });
-
-
-    let currentWarnUserID = null;
-
-    function closeWarnModal() {
-        document.getElementById("warnModal").style.display = "none";
-        document.getElementById("warnList").innerHTML = "";
-        document.getElementById("warnReason").value = "";
-    }
-
-    // Ouvre le casier
-    const userRole = document.body.dataset.userRole;
-    const isAdmin = userRole === "admin";
-
-    document.querySelectorAll(".warn-user-btn").forEach(button => {
-        button.addEventListener("click", () => {
-            const userID = button.getAttribute("data-userid");
-            const username = button.getAttribute("data-username");
-            currentWarnUserID = userID;
-
-            document.getElementById("warnModalTitle").innerText = `Casier de ${username}`;
-
-            fetch(`/admin/warns?user_id=${userID}`)
-                .then(res => res.json())
-                .then(data => {
-                    const warnList = document.getElementById("warnList");
-                    warnList.innerHTML = "";
-                    data.forEach(warn => {
-                        const li = document.createElement("li");
-                        const date = new Date(warn.CreatedAt).toLocaleString("fr-FR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                        });
-
-                        li.innerHTML = `
-                            <div style="margin-bottom: 10px;">
-                                <strong>Modérateur :</strong> ${warn.Issuer}<br>
-                                <strong>Raison :</strong> ${warn.Reason}<br>
-                                <strong>Date :</strong> ${date}
-                            </div>
-                        `;
-
-                        if (isAdmin) {
-                            const deleteBtn = document.createElement("button");
-                            deleteBtn.innerText = "Supprimer";
-                            deleteBtn.style.marginTop = "5px";
-                            deleteBtn.addEventListener("click", () => {
-                                if (!confirm("Supprimer ce warn ?")) return;
-
-                                fetch(`/admin/secure/delete-warn`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ warn_id: warn.ID })
-                                })
-                                .then(res => res.json())
-                                .then(resp => {
-                                    if (resp.success) {
-                                        alert("Warn supprimé !");
-                                        // Supprimer le warn du DOM
-                                        li.remove();
-
-                                        // Actualiser le compteur sans recharger tout
-                                        const counterSpan = document.getElementById(`warn-count-${currentWarnUserID}`);
-                                        let currentCount = parseInt(counterSpan.textContent.replace(/[^\d]/g, ""));
-                                        if (!isNaN(currentCount) && currentCount > 0) {
-                                            counterSpan.textContent = `(${currentCount - 1})`;
-                                        }
-                                    } else {
-                                        alert("Erreur : " + resp.message);
-                                    }
-                                });
-                            });
-                            li.appendChild(deleteBtn);
-                        }
-
-                        warnList.appendChild(li);
-                    });
-
-                    document.getElementById("warnModal").style.display = "block";
-                });
-        });
-    });
-
-
-    document.getElementById("addWarnBtn").addEventListener("click", () => {
-        const reason = document.getElementById("warnReason").value.trim();
-        if (!reason) {
-            alert("Raison obligatoire !");
-            return;
-        }
-
-        fetch("/admin/add-warn", {
+        fetch("/admin/delete-report-post", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: currentWarnUserID, reason: reason })
+            body: JSON.stringify({ report_id: reportID }) 
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Avertissement ajouté !");
-                document.getElementById(`warn-count-${currentWarnUserID}`).textContent = `(${data.new_count})`;
-                closeWarnModal();
+                alert("Signalement supprimé !");
+                location.reload();
             } else {
                 alert("Erreur : " + data.message);
             }
         });
     });
+});
+
+// Bannir l'auteur du post signalé
+document.querySelectorAll(".ban-post-author-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const userID = button.getAttribute("data-userid");
+        if (!confirm("Bannir cet utilisateur ?")) return;
+
+        fetch("/admin/secure/toggle-ban", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userID, banned: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Utilisateur banni !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        });
+    });
+});
+
+// Supprimer un post signalé
+document.querySelectorAll(".delete-post-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const postID = parseInt(button.getAttribute("data-postid"), 10);
+        if (!confirm("Supprimer ce post ainsi que ses commentaires et signalements ?")) return;
+
+        fetch("/admin/delete-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ post_id: postID.toString() })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Post supprimé !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        })
+        .catch(() => alert("Erreur lors de la suppression du post."));
+    });
+});
+
+
+
+let currentWarnUserID = null;
+
+function closeWarnModal() {
+    document.getElementById("warnModal").style.display = "none";
+    document.getElementById("warnList").innerHTML = "";
+    document.getElementById("warnReason").value = "";
+}
+
+// Ouvre le casier
+const userRole = document.body.dataset.userRole;
+const isAdmin = userRole === "admin";
+
+document.querySelectorAll(".warn-user-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const userID = button.getAttribute("data-userid");
+        const username = button.getAttribute("data-username");
+        currentWarnUserID = userID;
+
+        document.getElementById("warnModalTitle").innerText = `Casier de ${username}`;
+
+        fetch(`/admin/warns?user_id=${userID}`)
+            .then(res => res.json())
+            .then(data => {
+                const warnList = document.getElementById("warnList");
+                warnList.innerHTML = "";
+                data.forEach(warn => {
+                    const li = document.createElement("li");
+                    const date = new Date(warn.CreatedAt).toLocaleString("fr-FR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+
+                    li.innerHTML = `
+                        <div style="margin-bottom: 10px;">
+                            <strong>Modérateur :</strong> ${warn.Issuer}<br>
+                            <strong>Raison :</strong> ${warn.Reason}<br>
+                            <strong>Date :</strong> ${date}
+                        </div>
+                    `;
+
+                    if (isAdmin) {
+                        const deleteBtn = document.createElement("button");
+                        deleteBtn.innerText = "Supprimer";
+                        deleteBtn.style.marginTop = "5px";
+                        deleteBtn.addEventListener("click", () => {
+                            if (!confirm("Supprimer ce warn ?")) return;
+
+                            fetch(`/admin/secure/delete-warn`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ warn_id: warn.ID })
+                            })
+                            .then(res => res.json())
+                            .then(resp => {
+                                if (resp.success) {
+                                    alert("Warn supprimé !");
+                                    // Supprimer le warn du DOM
+                                    li.remove();
+
+                                    // Actualiser le compteur sans recharger tout
+                                    const counterSpan = document.getElementById(`warn-count-${currentWarnUserID}`);
+                                    let currentCount = parseInt(counterSpan.textContent.replace(/[^\d]/g, ""));
+                                    if (!isNaN(currentCount) && currentCount > 0) {
+                                        counterSpan.textContent = `(${currentCount - 1})`;
+                                    }
+                                } else {
+                                    alert("Erreur : " + resp.message);
+                                }
+                            });
+                        });
+                        li.appendChild(deleteBtn);
+                    }
+
+                    warnList.appendChild(li);
+                });
+
+                document.getElementById("warnModal").style.display = "block";
+            });
+    });
+});
+
+
+document.getElementById("addWarnBtn").addEventListener("click", () => {
+    const reason = document.getElementById("warnReason").value.trim();
+    if (!reason) {
+        alert("Raison obligatoire !");
+        return;
+    }
+
+    fetch("/admin/add-warn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentWarnUserID, reason: reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Avertissement ajouté !");
+            document.getElementById(`warn-count-${currentWarnUserID}`).textContent = `(${data.new_count})`;
+            closeWarnModal();
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    });
+});
+
+
+// Supprimer un signalement de commentaire
+document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const reportID = parseInt(button.getAttribute("data-reportid"), 10);
+        if (!confirm("Supprimer ce signalement de commentaire ?")) return;
+
+        fetch("/admin/delete-report-comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ report_id: reportID })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Signalement supprimé !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        });
+    });
+});
+
+
+// Bannir l'auteur du commentaire signalé
+document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const userID = button.getAttribute("data-userid");
+        if (!confirm("Bannir cet utilisateur ?")) return;
+
+        fetch("/admin/secure/toggle-ban", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userID, banned: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Utilisateur banni !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        });
+    });
+});
+
+// Supprimer un commentaire signalé
+document.querySelectorAll(".delete-comment-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const commentID = parseInt(button.getAttribute("data-commentid"), 10);
+        if (!confirm("Supprimer ce commentaire ?")) return;
+
+        fetch("/admin/delete-comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment_id: commentID })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Commentaire supprimé !");
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        })
+        .catch(() => alert("Erreur lors de la suppression du commentaire."));
+    });
+});
+
 
 </script>

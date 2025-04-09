@@ -58,6 +58,7 @@
                             </p>
                             <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
                             <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
+                            <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
 
                             {{if eq .UserID $.UserID}}
                                 <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
@@ -176,7 +177,7 @@ function confirmDelete() {
     closeDeleteForm();
 }
 
-// Supprime le post via fetch API
+// Supprime le post
 function deletePost(postID) {
     console.log("Suppression demandée pour le post ID :", postID);
 
@@ -430,7 +431,7 @@ function likeComment(commentID, value) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            comment_id: parseInt(commentID, 10), // ✅ force en entier
+            comment_id: parseInt(commentID, 10), 
             value: value
         })
     })
@@ -513,6 +514,33 @@ function submitEditComment() {
             const commentDiv = document.querySelector(`#comment-${commentID} p strong`).nextSibling;
             if (commentDiv) commentDiv.nodeValue = " : " + newContent;
             closeEditCommentForm();
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    })
+    .catch(() => alert("Erreur réseau"));
+}
+
+
+
+function reportComment(commentID) {
+    const reason = prompt("Pourquoi signalez-vous ce commentaire ? (optionnel)");
+    if (reason === null) return;
+
+    const payload = {
+        comment_id: parseInt(commentID),
+        reason: reason.trim()
+    };
+
+    fetch("/user/report-comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Le commentaire a été signalé.");
         } else {
             alert("Erreur : " + data.message);
         }

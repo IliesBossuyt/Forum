@@ -79,11 +79,18 @@ func InsertComment(postID int, userID, content string) (int64, error) {
 }
 
 func DeleteComment(commentID int) error {
-	_, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id = ?", commentID)
-	if err != nil {
+	// Supprimer les likes
+	if _, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id = ?", commentID); err != nil {
 		return err
 	}
-	_, err = database.DB.Exec("DELETE FROM comments WHERE id = ?", commentID)
+
+	// Supprimer les signalements liés
+	if _, err := database.DB.Exec("DELETE FROM comment_reports WHERE comment_id = ?", commentID); err != nil {
+		return err
+	}
+
+	// Supprimer le commentaire lui-même
+	_, err := database.DB.Exec("DELETE FROM comments WHERE id = ?", commentID)
 	return err
 }
 

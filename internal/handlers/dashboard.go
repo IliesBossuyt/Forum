@@ -12,6 +12,7 @@ import (
 type DashboardData struct {
 	Users           []models.User
 	Reports         []models.Report
+	CommentReports  []models.CommentReport
 	WarnCounts      map[string]int
 	CurrentUserRole string
 }
@@ -36,7 +37,14 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 			users = append(users, u)
 		}
 
-		// Récupération des signalements
+		// Récupération des commentaires signalés
+		commentReports, err := models.GetAllCommentReports()
+		if err != nil {
+			http.Error(w, "Erreur serveur (signalements commentaires)", http.StatusInternalServerError)
+			return
+		}
+
+		// Récupération des posts signalés
 		reports, err := models.GetAllReports()
 		if err != nil {
 			http.Error(w, "Erreur serveur (signalements)", http.StatusInternalServerError)
@@ -85,6 +93,7 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 		data := DashboardData{
 			Users:           users,
 			Reports:         reports,
+			CommentReports:  commentReports,
 			WarnCounts:      warnCounts,
 			CurrentUserRole: role,
 		}

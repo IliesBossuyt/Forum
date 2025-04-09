@@ -60,14 +60,18 @@ func Router() {
 	userRouter.HandleFunc("/like-comment", handlers.LikeComment)
 	userRouter.HandleFunc("/delete-comment", handlers.DeleteComment)
 	userRouter.HandleFunc("/edit-comment", handlers.EditComment)
+	userRouter.HandleFunc("/report-comment", handlers.ReportComment)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes
 	adminRouter := http.NewServeMux()
 	// Route dashboard (admin + moderateur)
 	adminRouter.HandleFunc("/dashboard", handlers.Dashboard)
-	adminRouter.HandleFunc("/delete-report", handlers.DeleteReport)
+	adminRouter.HandleFunc("/delete-report-post", handlers.DeleteReportPost)
+	adminRouter.HandleFunc("/delete-report-comment", handlers.DeleteReportComment)
 	adminRouter.HandleFunc("/add-warn", handlers.AddWarn)
+	adminRouter.HandleFunc("/delete-comment", handlers.DeleteComment)
+	adminRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	adminRouter.HandleFunc("/warns", handlers.GetUserWarns)
 
 	// Sous-routes sensibles (admin seul)

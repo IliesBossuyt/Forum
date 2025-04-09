@@ -14,7 +14,6 @@ type Report struct {
 	PostContent      string
 	PostAuthor       string
 	PostAuthorID     string
-	PostAuthorBanned bool
 	PostImage        *string // Pointeur pour accepter NULL
 }
 

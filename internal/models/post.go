@@ -20,7 +20,7 @@ type Post struct {
 
 // Récupérer tous les posts
 func GetAllPosts() ([]Post, error) {
-		rows, err := database.DB.Query(`
+	rows, err := database.DB.Query(`
 		SELECT posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at,
 			COALESCE(SUM(CASE WHEN likes.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
 			COALESCE(SUM(CASE WHEN likes.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
@@ -90,13 +90,28 @@ func GetPostImage(postID int) ([]byte, error) {
 
 // Supprimer un post (et ses dépendances)
 func DeletePost(postID int) error {
-	// Supprimer les likes associés au post
-	_, err := database.DB.Exec("DELETE FROM likes WHERE post_id = ?", postID)
-	if err != nil {
+	// Supprimer les likes
+	if _, err := database.DB.Exec("DELETE FROM likes WHERE post_id = ?", postID); err != nil {
+		return err
+	}
+
+	// Supprimer les commentaires
+	if _, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)", postID); err != nil {
+		return err
+	}
+	if _, err := database.DB.Exec("DELETE FROM comments WHERE post_id = ?", postID); err != nil {
+		return err
+	}
+
+	// Supprimer les signalements
+	if _, err := database.DB.Exec("DELETE FROM reports WHERE post_id = ?", postID); err != nil {
 		return err
 	}
 
 	// Supprimer le post lui-même
-	_, err = database.DB.Exec("DELETE FROM posts WHERE id = ?", postID)
-	return err
+	if _, err := database.DB.Exec("DELETE FROM posts WHERE id = ?", postID); err != nil {
+		return err
+	}
+
+	return nil
 }
