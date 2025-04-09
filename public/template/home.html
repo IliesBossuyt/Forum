@@ -58,6 +58,10 @@
                             </p>
                             <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
                             <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
+
+                            {{if eq .UserID $.UserID}}
+                                <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
+                            {{end}}
                             
                             {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
                                 <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
@@ -115,6 +119,17 @@
         <button onclick="confirmDeleteComment()">🗑 Supprimer</button>
         <button onclick="closeDeleteCommentForm()">Annuler</button>
     </div>
+
+    <!-- Fenêtre modale pour modifier un commentaire -->
+    <div id="edit-comment-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+        <h3>Modifier le commentaire</h3>
+        <textarea id="edit-comment-content" rows="3" style="width:100%;"></textarea>
+        <input type="hidden" id="edit-comment-id">
+        <br>
+        <button onclick="submitEditComment()">Enregistrer</button>
+        <button onclick="closeEditCommentForm()">Annuler</button>
+    </div>
+
 
     
 </body>
@@ -466,5 +481,43 @@ function confirmDeleteComment() {
 }
 
 
+
+
+function editComment(commentID, content) {
+    document.getElementById("edit-comment-id").value = commentID;
+    document.getElementById("edit-comment-content").value = content;
+    document.getElementById("edit-comment-form").style.display = "block";
+}
+
+function closeEditCommentForm() {
+    document.getElementById("edit-comment-form").style.display = "none";
+}
+
+function submitEditComment() {
+    const commentID = document.getElementById("edit-comment-id").value;
+    const newContent = document.getElementById("edit-comment-content").value.trim();
+
+    if (!newContent) {
+        alert("Le contenu ne peut pas être vide.");
+        return;
+    }
+
+    fetch("/user/edit-comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment_id: parseInt(commentID), content: newContent })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const commentDiv = document.querySelector(`#comment-${commentID} p strong`).nextSibling;
+            if (commentDiv) commentDiv.nodeValue = " : " + newContent;
+            closeEditCommentForm();
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    })
+    .catch(() => alert("Erreur réseau"));
+}
 
 </script>

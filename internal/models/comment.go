@@ -18,7 +18,7 @@ type Comment struct {
 }
 
 func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
-		rows, err := database.DB.Query(`
+	rows, err := database.DB.Query(`
 		SELECT 
 			c.id, 
 			c.post_id, 
@@ -44,7 +44,7 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	for rows.Next() {
 		var c Comment
 		var rawTime time.Time
-	
+
 		err := rows.Scan(
 			&c.ID, &c.PostID, &c.UserID, &c.Username,
 			&c.Content, &rawTime,
@@ -53,10 +53,10 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 		if err != nil {
 			return nil, err
 		}
-	
+
 		c.CreatedAt = rawTime.Format("02/01/2006 15:04")
 		comments = append(comments, c)
-	}	
+	}
 	return comments, nil
 }
 
@@ -91,4 +91,9 @@ func GetCommentAuthorID(commentID int) (string, error) {
 	var authorID string
 	err := database.DB.QueryRow("SELECT author_id FROM comments WHERE id = ?", commentID).Scan(&authorID)
 	return authorID, err
+}
+
+func UpdateCommentContent(commentID int, newContent string) error {
+	_, err := database.DB.Exec("UPDATE comments SET content = ? WHERE id = ?", newContent, commentID)
+	return err
 }
