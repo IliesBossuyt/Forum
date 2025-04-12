@@ -46,6 +46,9 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	loc, _ := time.LoadLocation("Europe/Paris")
+	createdAt := time.Now().In(loc).Format("02/01/2006 15:04")
+
 	// Réponse JSON
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
@@ -53,7 +56,8 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 			"id":        commentID,
 			"content":   input.Content,
 			"username":  username,
-			"createdAt": time.Now().Format("02/01/2006 à 15:04"),
+			"createdAt": createdAt,
+			"canEdit":   true,
 			"canDelete": true, // c’est l'auteur
 		},
 	})

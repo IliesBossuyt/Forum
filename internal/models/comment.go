@@ -54,7 +54,8 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 			return nil, err
 		}
 
-		c.CreatedAt = rawTime.Format("02/01/2006 15:04")
+		loc, _ := time.LoadLocation("Europe/Paris")
+		c.CreatedAt = time.Now().In(loc).Format("02/01/2006 15:04")
 		comments = append(comments, c)
 	}
 	return comments, nil

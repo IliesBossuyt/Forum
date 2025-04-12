@@ -40,7 +40,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		Posts  []models.Post
 	}{
 		UserID: userID,
-		Role:   role,
+		Role:   role,	
 		Posts:  posts,
 	}
 

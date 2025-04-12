@@ -402,16 +402,18 @@ function submitComment(postID) {
         div.style.padding = "5px";
 
         div.innerHTML = `
-            <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
-            <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
-            <p>
-                👍 <span id="comment-like-${data.comment.id}">0</span>
-                | 👎 <span id="comment-dislike-${data.comment.id}">0</span>
-            </p>
-            <button onclick="likeComment('${data.comment.id}', 1)">👍 Like</button>
-            <button onclick="likeComment('${data.comment.id}', -1)">👎 Dislike</button>
-            ${data.comment.canDelete ? `<button onclick="deleteComment('${data.comment.id}')">🗑 Supprimer</button>` : ""}
-        `;
+        <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
+        <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
+        <p>
+            👍 <span id="comment-like-${data.comment.id}">0</span>
+            | 👎 <span id="comment-dislike-${data.comment.id}">0</span>
+        </p>
+        <button onclick="likeComment('${data.comment.id}', 1)">👍 Like</button>
+        <button onclick="likeComment('${data.comment.id}', -1)">👎 Dislike</button>
+        <button onclick="reportComment('${data.comment.id}')">🚩 Signaler</button>
+        ${data.comment.canEdit ? `<button onclick="editComment('${data.comment.id}', '${data.comment.content.replace(/'/g, "\\'")}')">✏ Modifier</button>` : ""}
+        ${data.comment.canDelete ? `<button onclick="deleteComment('${data.comment.id}')">🗑 Supprimer</button>` : ""}
+    `;
 
         commentSection.insertBefore(div, textarea);
         textarea.value = "";
