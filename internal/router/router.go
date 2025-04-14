@@ -33,7 +33,6 @@ func Router() {
 	routeManager.Handle("/entry/", requireRole("guest", "user", "admin", "moderator")(
 		http.StripPrefix("/entry", handlers.WithNotFoundFallback(guestRouter)),
 	))
-	
 
 	// Auth routes
 	authRouter := http.NewServeMux()
@@ -46,7 +45,6 @@ func Router() {
 	authRouter.HandleFunc("/github/login", security.GitHubLogin)
 	authRouter.HandleFunc("/github/callback", security.GitHubCallback)
 	routeManager.Handle("/auth/", http.StripPrefix("/auth", handlers.WithNotFoundFallback(authRouter)))
-
 
 	// User routes
 	userRouter := http.NewServeMux()
@@ -61,6 +59,8 @@ func Router() {
 	userRouter.HandleFunc("/delete-comment", handlers.DeleteComment)
 	userRouter.HandleFunc("/edit-comment", handlers.EditComment)
 	userRouter.HandleFunc("/report-comment", handlers.ReportComment)
+	userRouter.HandleFunc("/notifications", handlers.GetNotifications)
+	userRouter.HandleFunc("/notifications/mark-read", handlers.MarkNotificationsRead)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes
@@ -80,11 +80,9 @@ func Router() {
 	adminSecure.HandleFunc("/toggle-ban", security.ToggleBanUser)
 	adminSecure.HandleFunc("/delete-warn", handlers.DeleteWarn)
 
-
 	// On attache les deux avec les bons droits
 	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", handlers.WithNotFoundFallback(adminRouter))))
 	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", handlers.WithNotFoundFallback(adminSecure))))
-
 
 	// Handler final avec fallback 404
 	var secureHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

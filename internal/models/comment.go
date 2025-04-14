@@ -105,3 +105,15 @@ func UpdateCommentContent(commentID int, newContent string) error {
 	_, err := database.DB.Exec("UPDATE comments SET content = ? WHERE id = ?", newContent, commentID)
 	return err
 }
+
+func GetCommentByID(commentID int) (Comment, error) {
+	var c Comment
+	err := database.DB.QueryRow(`
+		SELECT c.id, c.post_id, c.author_id, u.username, c.content, c.created_at
+		FROM comments c
+		JOIN users u ON c.author_id = u.id
+		WHERE c.id = ?
+	`, commentID).Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt)
+
+	return c, err
+}

@@ -34,3 +34,31 @@
 }
 
 
+.notif-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    z-index: 999;
+    max-width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.notif-dropdown ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.notif-dropdown li {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.notif-dropdown li.unseen {
+    font-weight: bold;
+}

@@ -9,6 +9,13 @@
 <body>
     <h2>Bienvenue sur le Forum</h2>
 
+    <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications</button>
+    <div id="notifDropdown" class="notif-dropdown" style="display:none;">
+        <h4>Notifications</h4>
+        <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
+        <ul id="notifList"></ul>
+    </div>    
+
     <form action="/user/create-post" method="POST" enctype="multipart/form-data">
         <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
         <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
@@ -130,7 +137,6 @@
         <button onclick="submitEditComment()">Enregistrer</button>
         <button onclick="closeEditCommentForm()">Annuler</button>
     </div>
-
 
     
 </body>
@@ -549,5 +555,44 @@ function reportComment(commentID) {
     })
     .catch(() => alert("Erreur réseau"));
 }
+
+
+function toggleNotifMenu() {
+    const menu = document.getElementById("notifDropdown");
+    menu.style.display = menu.style.display === "none" ? "block" : "none";
+
+    if (menu.style.display === "block") {
+        loadNotifications();
+    }
+}
+
+function loadNotifications() {
+    fetch("/user/notifications")
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById("notifList");
+            list.innerHTML = "";
+
+            data.forEach(n => {
+                const li = document.createElement("li");
+                li.className = n.seen ? "" : "unseen";
+                li.innerHTML = `
+                    <p>${n.message}</p>
+                    <small>${n.created_at}</small>
+                `;
+                list.appendChild(li);
+            });
+        });
+}
+
+function markNotificationsRead() {
+    fetch("/user/notifications/mark-read", {
+        method: "POST"
+    })
+    .then(() => {
+        loadNotifications();
+    });
+}
+
 
 </script>
