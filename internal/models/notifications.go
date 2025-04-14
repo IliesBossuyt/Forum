@@ -19,10 +19,13 @@ type Notification struct {
 }
 
 func CreateNotification(n Notification) error {
+	loc, _ := time.LoadLocation("Europe/Paris")
+	createdAt := time.Now().In(loc)
+
 	_, err := database.DB.Exec(`
-        INSERT INTO notifications (recipient_id, sender_id, type, post_id, comment_id, message)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-		n.RecipientID, n.SenderID, n.Type, n.PostID, n.CommentID, n.Message)
+        INSERT INTO notifications (recipient_id, sender_id, type, post_id, comment_id, message, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		n.RecipientID, n.SenderID, n.Type, n.PostID, n.CommentID, n.Message, createdAt)
 	return err
 }
 
@@ -55,10 +58,14 @@ func GetNotificationsByUser(userID string) ([]Notification, error) {
 
 		// Construire dynamiquement le message
 		switch n.Type {
-		case "like":
-			n.Message = n.SenderUsername + " a aimé votre post."
+		case "like_post":
+			n.Message = n.SenderUsername + " a liké votre post."
+		case "dislike_post":
+			n.Message = n.SenderUsername + " a disliké votre post."
 		case "like_comment":
-			n.Message = n.SenderUsername + " a aimé votre commentaire."
+			n.Message = n.SenderUsername + " a liké votre commentaire."
+		case "dislike_comment":
+			n.Message = n.SenderUsername + " a disliké votre commentaire."
 		case "comment":
 			n.Message = n.SenderUsername + " a commenté votre post."
 		case "warn":
@@ -75,5 +82,10 @@ func GetNotificationsByUser(userID string) ([]Notification, error) {
 
 func MarkNotificationsAsSeen(userID string) error {
 	_, err := database.DB.Exec("UPDATE notifications SET seen = TRUE WHERE recipient_id = ?", userID)
+	return err
+}
+
+func DeleteAllNotificationsForUser(userID string) error {
+	_, err := database.DB.Exec("DELETE FROM notifications WHERE recipient_id = ?", userID)
 	return err
 }

@@ -30,6 +30,15 @@ func AddWarn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Notification pour l'utilisateur averti
+	if input.UserID != issuedBy {
+		_ = models.CreateNotification(models.Notification{
+			RecipientID: input.UserID,
+			SenderID:    issuedBy,
+			Type:        "warn",
+		})
+	}
+
 	warns, _ := models.GetWarnsByUserID(input.UserID)
 	count := len(warns)
 

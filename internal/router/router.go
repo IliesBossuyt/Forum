@@ -61,6 +61,7 @@ func Router() {
 	userRouter.HandleFunc("/report-comment", handlers.ReportComment)
 	userRouter.HandleFunc("/notifications", handlers.GetNotifications)
 	userRouter.HandleFunc("/notifications/mark-read", handlers.MarkNotificationsRead)
+	userRouter.HandleFunc("/notifications/delete-all", handlers.DeleteAllNotifications)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
 	// Admin routes

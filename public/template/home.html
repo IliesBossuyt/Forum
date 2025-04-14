@@ -13,6 +13,7 @@
     <div id="notifDropdown" class="notif-dropdown" style="display:none;">
         <h4>Notifications</h4>
         <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
+        <button onclick="deleteAllNotifications()">🗑 Supprimer toutes les notifications</button>
         <ul id="notifList"></ul>
     </div>    
 
@@ -592,6 +593,23 @@ function markNotificationsRead() {
     .then(() => {
         loadNotifications();
     });
+}
+
+function deleteAllNotifications() {
+    if (!confirm("Supprimer toutes les notifications ?")) return;
+
+    fetch("/user/notifications/delete-all", {
+        method: "POST"
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadNotifications();
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    })
+    .catch(() => alert("Erreur réseau lors de la suppression."));
 }
 
 

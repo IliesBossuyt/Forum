@@ -30,7 +30,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Appliquer le like/dislike
-	added, err := models.ToggleLike(userID, input.PostID, input.Value)
+	added, wasLike, err := models.ToggleLike(userID, input.PostID, input.Value)
 	if err != nil {
 		http.Error(w, "Erreur lors du like/dislike", http.StatusInternalServerError)
 		return
@@ -43,14 +43,19 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Créer la notification seulement si c'est un like
+	// Créer une notification si ajout (like ou dislike)
 	if added {
 		post, err := models.GetPostByID(input.PostID)
 		if err == nil && post.UserID != userID {
+			notifType := "dislike_post"
+			if wasLike {
+				notifType = "like_post"
+			}
+
 			models.CreateNotification(models.Notification{
 				RecipientID: post.UserID,
 				SenderID:    userID,
-				Type:        "like",
+				Type:        notifType,
 				PostID:      &input.PostID,
 			})
 		}

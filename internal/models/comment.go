@@ -54,29 +54,30 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 			return nil, err
 		}
 
-		loc, _ := time.LoadLocation("Europe/Paris")
-		c.CreatedAt = time.Now().In(loc).Format("02/01/2006 15:04")
+		c.CreatedAt = rawTime.Format("02/01/2006 15:04")
 		comments = append(comments, c)
 	}
 	return comments, nil
 }
 
-func InsertComment(postID int, userID, content string) (int64, error) {
+func InsertComment(postID int, userID, content string) (int64, time.Time, error) {
+	loc, _ := time.LoadLocation("Europe/Paris")
+	createdAt := time.Now().In(loc)
+
 	result, err := database.DB.Exec(`
-		INSERT INTO comments (post_id, author_id, content)
-		VALUES (?, ?, ?)
-	`, postID, userID, content)
+		INSERT INTO comments (post_id, author_id, content, created_at)
+		VALUES (?, ?, ?, ?)`,
+		postID, userID, content, createdAt)
 	if err != nil {
-		return 0, err
+		return 0, time.Time{}, err
 	}
 
-	// Récupère l'ID du commentaire inséré
 	lastID, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, time.Time{}, err
 	}
 
-	return lastID, nil
+	return lastID, createdAt, nil
 }
 
 func DeleteComment(commentID int) error {

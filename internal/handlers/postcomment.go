@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 func PostComment(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +27,7 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insertion et récupération de l'ID
-	commentID, err := models.InsertComment(input.PostID, userID, input.Content)
+	commentID, createdAt, err := models.InsertComment(input.PostID, userID, input.Content)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du commentaire", http.StatusInternalServerError)
 		return
@@ -46,8 +45,17 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	loc, _ := time.LoadLocation("Europe/Paris")
-	createdAt := time.Now().In(loc).Format("02/01/2006 15:04")
+	commentIDInt := int(commentID)
+	post, err := models.GetPostByID(input.PostID)
+	if err == nil && post.UserID != userID {
+		_ = models.CreateNotification(models.Notification{
+			RecipientID: post.UserID,
+			SenderID:    userID,
+			Type:        "comment",
+			PostID:      &input.PostID,
+			CommentID:   &commentIDInt,
+		})
+	}
 
 	// Réponse JSON
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -56,7 +64,7 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 			"id":        commentID,
 			"content":   input.Content,
 			"username":  username,
-			"createdAt": createdAt,
+			"createdAt": createdAt.Format("02/01/2006 15:04"),
 			"canEdit":   true,
 			"canDelete": true, // c’est l'auteur
 		},

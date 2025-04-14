@@ -30,7 +30,7 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Appliquer le like/dislike d'abord
-	added, err := models.ToggleCommentLike(userID, input.CommentID, input.Value)
+	added, wasLike, err := models.ToggleCommentLike(userID, input.CommentID, input.Value)
 	if err != nil {
 		http.Error(w, "Erreur lors du traitement du like", http.StatusInternalServerError)
 		return
@@ -43,14 +43,18 @@ func LikeComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Si un like a été ajouté, créer une notification
 	if added {
 		comment, err := models.GetCommentByID(input.CommentID)
 		if err == nil && comment.UserID != userID {
+			notifType := "dislike_comment"
+			if wasLike {
+				notifType = "like_comment"
+			}
+
 			models.CreateNotification(models.Notification{
 				RecipientID: comment.UserID,
 				SenderID:    userID,
-				Type:        "like_comment",
+				Type:        notifType,
 				CommentID:   &input.CommentID,
 			})
 		}

@@ -2,7 +2,7 @@ package models
 
 import "Forum/internal/database"
 
-func ToggleCommentLike(userID string, commentID int, value int) (added bool, err error) {
+func ToggleCommentLike(userID string, commentID int, value int) (added bool, wasLike bool, err error) {
 	var existingValue int
 	err = database.DB.QueryRow(
 		"SELECT value FROM comment_likes WHERE user_id = ? AND comment_id = ?", userID, commentID,
@@ -10,20 +10,21 @@ func ToggleCommentLike(userID string, commentID int, value int) (added bool, err
 
 	if err == nil {
 		if existingValue == value {
-			// Même valeur, on supprime (toggle off)
+			// Même valeur = toggle off (on supprime)
 			_, err = database.DB.Exec("DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?", userID, commentID)
-			return false, err
+			return false, false, err
 		}
 
-		// Valeur différente (ex: dislike -> like), on met à jour
+		// Valeur différente, mise à jour
 		_, err = database.DB.Exec("UPDATE comment_likes SET value = ? WHERE user_id = ? AND comment_id = ?", value, userID, commentID)
-		return value == 1, err
+		return true, value == 1, err
 	}
 
-	// Aucun like/dislike existant, insertion
+	// Si aucune ligne existante, insérer une nouvelle
 	_, err = database.DB.Exec("INSERT INTO comment_likes (user_id, comment_id, value) VALUES (?, ?, ?)", userID, commentID, value)
-	return value == 1, err
+	return true, value == 1, err
 }
+
 
 // Dans models/comment.go
 func GetCommentLikes(commentID int) (int, int, error) {

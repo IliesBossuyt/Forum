@@ -17,7 +17,6 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loc, _ := time.LoadLocation("Europe/Paris")
 	type JSONNotif struct {
 		Message   string `json:"message"`
 		CreatedAt string `json:"created_at"`
@@ -28,7 +27,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	for _, n := range notifs {
 		result = append(result, JSONNotif{
 			Message:   n.Message,
-			CreatedAt: n.CreatedAt.In(loc).Format("02/01/2006 15:04"),
+			CreatedAt: time.Now().Format("02/01/2006 15:04"),
 			Seen:      n.Seen,
 		})
 	}
@@ -45,4 +44,16 @@ func MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func DeleteAllNotifications(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(security.ContextUserIDKey).(string)
+
+	err := models.DeleteAllNotificationsForUser(userID)
+	if err != nil {
+		http.Error(w, "Erreur lors de la suppression", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{"success": true})
 }

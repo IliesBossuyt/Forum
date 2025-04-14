@@ -5,29 +5,28 @@ import (
 )
 
 // Ajouter ou modifier un like/dislike sur les posts
-func ToggleLike(userID string, postID int, value int) (bool, error) {
+func ToggleLike(userID string, postID int, value int) (added bool, wasLike bool, err error) {
 	var existingValue int
-	err := database.DB.QueryRow(
+	err = database.DB.QueryRow(
 		"SELECT value FROM likes WHERE user_id = ? AND post_id = ?", userID, postID,
 	).Scan(&existingValue)
 
 	if err == nil {
 		if existingValue == value {
-			// L'utilisateur retire son vote
+			// Même vote → suppression
 			_, err = database.DB.Exec("DELETE FROM likes WHERE user_id = ? AND post_id = ?", userID, postID)
-			return false, err
+			return false, false, err
 		}
 
-		// L'utilisateur change son vote (like ↔ dislike)
+		// Changement de vote
 		_, err = database.DB.Exec("UPDATE likes SET value = ? WHERE user_id = ? AND post_id = ?", value, userID, postID)
-		return value == 1, err // seulement true si c'est un like
+		return true, value == 1, err
 	}
 
-	// Nouveau vote
+	// Premier vote
 	_, err = database.DB.Exec("INSERT INTO likes (user_id, post_id, value) VALUES (?, ?, ?)", userID, postID, value)
-	return value == 1, err
+	return true, value == 1, err
 }
-
 
 // Récupérer le nombre de likes et dislikes d'un post
 func GetPostLikes(postID int) (int, int, error) {
