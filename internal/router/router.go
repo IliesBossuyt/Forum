@@ -48,7 +48,7 @@ func Router() {
 
 	// User routes
 	userRouter := http.NewServeMux()
-	userRouter.HandleFunc("/profile", handlers.Profile)
+	userRouter.HandleFunc("/profile/", handlers.Profile)
 	userRouter.Handle("/create-post", security.RateLimitCreatePost(http.HandlerFunc(handlers.CreatePost)))
 	userRouter.HandleFunc("/like", handlers.LikePost)
 	userRouter.HandleFunc("/edit-post", handlers.EditPost)

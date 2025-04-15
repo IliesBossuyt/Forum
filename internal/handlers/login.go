@@ -19,7 +19,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			if valid {
 				user, err := models.GetUserByID(userID)
 				if err == nil && user != nil && !user.Banned {
-					http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
+					http.Redirect(w, r, "/profile/"+user.Username, http.StatusSeeOther)
 					return
 				}
 			}
@@ -79,7 +79,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Write([]byte("Connexion réussie !"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message":  "Connexion réussie",
+			"username": user.Username,
+		})
 	}
 }
 

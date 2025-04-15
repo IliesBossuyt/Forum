@@ -7,43 +7,51 @@
     <title>Profil</title>
 </head>
 <body>
-    <h2>Mon Profil</h2>
-    <p><strong>Nom d'utilisateur :</strong> <span id="display-username">{{.Username}}</span></p>
-    <p><strong>Email :</strong> <span id="display-email">{{.Email}}</span></p>
-    <p><strong>Rôle :</strong> {{.Role}}</p>
+    <h2>Profil de {{.User.Username}}</h2>
+    <p><strong>Nom d'utilisateur :</strong> <span id="display-username">{{.User.Username}}</span></p>
+    {{if .IsOwner}}
+    <p><strong>Email :</strong> <span id="display-email">{{.User.Email}}</span></p>
+    {{end}}
+    <p><strong>Rôle :</strong> {{.User.Role}}</p>
 
+    {{if .IsOwner}}
     <h3>Modifier mon profil</h3>
     <form id="profile-form">
         <label>Nom d'utilisateur :</label>
-        <input type="text" id="username" value="{{.Username}}" required><br>
-
+        <input type="text" id="username" value="{{.User.Username}}" required><br>
+    
         <label>Email :</label>
-        <input type="email" id="email" value="{{.Email}}" required><br>
-
+        <input type="email" id="email" value="{{.User.Email}}" required><br>
+    
         <label>Ancien mot de passe :</label>
         <input type="password" id="old-password"><br>
-
+    
         <label>Nouveau mot de passe :</label>
         <input type="password" id="new-password"><br>
 
+        <label>
+            <input type="checkbox" id="is-public" {{if .User.IsPublic}}checked{{end}}>
+            Rendre mon compte public
+        </label><br>    
+    
         <button type="submit">Enregistrer</button>
     </form>
-
+    
     <p id="success-message" style="color:green; display:none;">Mise à jour réussie !</p>
     <p id="error-message" style="color:red; display:none;"></p>
-
+    
     <a href="/auth/logout">Se déconnecter</a>
-
+    
     <h3>Warn</h3>
     <button id="openWarnBtn">
-        Casier (<span id="warnCount">{{len .Warns}}</span>)
+        Casier (<span id="warnCount">{{len .User.Warns}}</span>)
     </button>
     
     <!-- Modale du casier -->
     <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:2px solid #333; max-width:500px; z-index:999;">
         <h3>Mes avertissements</h3>
         <ul id="warnList" style="max-height:200px; overflow:auto;">
-            {{range .Warns}}
+            {{range .User.Warns}}
             <li style="margin-bottom: 10px; border-bottom: 1px solid #555; padding: 5px;">
                 <strong>Modérateur :</strong> {{.Issuer}}<br>
                 <strong>Raison :</strong> {{.Reason}}<br>
@@ -53,11 +61,35 @@
         </ul>
         <button onclick="closeWarnModal()">Fermer</button>
     </div>
+    {{end}}
+
+    {{if .User.IsPublic}}
+        <h3>Activité de l'utilisateur</h3>
+        <ul>
+        {{range .Activities}}
+            <li>
+                {{if eq .Type "post"}}📝 Nouveau post : {{.Content}}
+                {{else if eq .Type "comment"}}💬 Commentaire : {{.Content}} (sur le post : "{{.Target}}")
+                {{else if eq .Type "like_post"}}👍 A liké un post : "{{.Target}}"
+                {{else if eq .Type "dislike_post"}}👎 A disliké un post : "{{.Target}}"
+                {{else if eq .Type "like_comment"}}👍 A liké un commentaire : "{{.Target}}"
+                {{else if eq .Type "dislike_comment"}}👎 A disliké un commentaire : "{{.Target}}"
+                {{end}}<br>
+                <small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small>
+            </li>
+        {{end}}
+        </ul>
+    {{else}}
+        <p>Ce profil est privé.</p>
+    {{end}}
+
     
 </body>
 </html>
 
+{{if .IsOwner}}
 <script>
+    
     document.getElementById("profile-form").addEventListener("submit", function(event) {
         event.preventDefault();
         
@@ -65,10 +97,12 @@
             username: document.getElementById("username").value.trim(),
             email: document.getElementById("email").value.trim(),
             old_password: document.getElementById("old-password").value,
-            new_password: document.getElementById("new-password").value
+            new_password: document.getElementById("new-password").value,
+            is_public: document.getElementById("is-public").checked 
         };
 
-        fetch("/auth/profile", {
+        const currentUsername = document.getElementById("display-username").innerText;
+        fetch("/user/profile/" + currentUsername, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -116,3 +150,4 @@
 
            
 </script>
+{{end}}

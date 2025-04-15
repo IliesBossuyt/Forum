@@ -30,7 +30,7 @@ func init() {
 	githubOAuthConfig = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		RedirectURL:  "http://localhost:8080/auth/github/callback",
+		RedirectURL:  "https://localhost:8443/auth/github/callback",
 		Scopes:       []string{"user:email"},
 		Endpoint:     github.Endpoint,
 	}

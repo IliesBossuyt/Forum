@@ -29,7 +29,7 @@ func init() {
 	googleOAuthConfig = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		RedirectURL:  "http://localhost:8080/auth/google/callback",
+		RedirectURL:  "https://localhost:8443/auth/google/callback",
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint:     google.Endpoint,
 	}

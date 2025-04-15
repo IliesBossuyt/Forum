@@ -2,46 +2,72 @@ package handlers
 
 import (
 	"encoding/json"
-
-	"html/template"
-	"net/http"
+	"strings"
 
 	"Forum/internal/models"
 	"Forum/internal/security"
+	"html/template"
+	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Gestion de la page profil (Affichage et Modification)
 func Profile(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(security.ContextUserIDKey).(string)
+	username := strings.TrimPrefix(r.URL.Path, "/profile/")
+	username = strings.Trim(username, "/")
 
-	// Charger l'utilisateur complet si besoin (par ex. pour afficher profil, email, etc.)
-	user, err := models.GetUserByID(userID)
+	user, err := models.GetUserByUsername(username)
 	if err != nil || user == nil {
-		http.Error(w, "Utilisateur introuvable", http.StatusInternalServerError)
+		http.Error(w, "Utilisateur introuvable", http.StatusNotFound)
 		return
 	}
 
-	if r.Method == http.MethodGet {
-		user.Warns, _ = models.GetWarnsByUserID(userID)
+	var currentUserID string
+	if ctxUserID := r.Context().Value(security.ContextUserIDKey); ctxUserID != nil {
+		currentUserID = ctxUserID.(string)
+	}
 
-		// Charger et afficher le template
+	isOwner := currentUserID == user.ID
+
+	var activities []models.Activity
+
+	if r.Method == http.MethodGet {
+		if isOwner {
+			user.Warns, _ = models.GetWarnsByUserID(user.ID)
+		}
+
+		if user.IsPublic || isOwner {
+			activities, _ = models.GetUserActivity(user.ID)
+		}
+
+		// Affichage du profil
 		tmpl, err := template.ParseFiles("../public/template/profile.html")
 		if err != nil {
 			http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 			return
 		}
-		tmpl.Execute(w, user)
+
+		tmpl.Execute(w, struct {
+			User       *models.User
+			IsOwner    bool
+			Activities []models.Activity
+		}{
+			User:       user,
+			IsOwner:    isOwner,
+			Activities: activities,
+		})
 		return
 	}
 
-	if r.Method == http.MethodPost {
+	// Traitement de la modification (autorisé seulement pour le propriétaire)
+	if r.Method == http.MethodPost && isOwner {
 		var input struct {
 			Username    string `json:"username"`
 			Email       string `json:"email"`
 			OldPassword string `json:"old_password"`
 			NewPassword string `json:"new_password"`
+			IsPublic    bool   `json:"is_public"`
 		}
 
 		err := json.NewDecoder(r.Body).Decode(&input)
@@ -58,14 +84,14 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 		// Vérifier si le nouvel email est déjà utilisé
 		existingUser, _ := models.GetUserByEmail(input.Email)
-		if existingUser != nil && existingUser.ID != userID {
+		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Cet email est déjà utilisé", http.StatusBadRequest)
 			return
 		}
 
 		// Vérifier si le nouvel username est déjà utilisé
 		existingUser, _ = models.GetUserByUsername(input.Username)
-		if existingUser != nil && existingUser.ID != userID {
+		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Ce nom d'utilisateur est déjà pris", http.StatusBadRequest)
 			return
 		}
@@ -98,7 +124,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Mettre à jour le profil
-		err = models.UpdateUserProfile(userID, input.Username, input.Email, hashedPassword)
+		err = models.UpdateUserProfile(user.ID, input.Username, input.Email, hashedPassword, input.IsPublic)
 		if err != nil {
 			http.Error(w, "Erreur lors de la mise à jour du profil", http.StatusInternalServerError)
 			return

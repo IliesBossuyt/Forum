@@ -44,22 +44,22 @@ function loginUser(event) {
         body: JSON.stringify(data)
     })
     .then(async response => {
-        if (response.status === 403) {
-            const res = await response.json();
-            if (res.banned === "true") {
-                document.getElementById("message").innerText =
-                    "⚠️ Vous avez été banni du site. Veuillez contacter un administrateur.";
-                return;
-            }
+    if (response.status === 403) {
+        const res = await response.json();
+        if (res.banned === "true") {
+            document.getElementById("message").innerText =
+                "⚠️ Vous avez été banni du site. Veuillez contacter un administrateur.";
+            return;
         }
+    }
 
-        const text = await response.text();
-        document.getElementById("message").innerText = text;
+    const res = await response.json();
+    document.getElementById("message").innerText = res.message;
 
-        if (text.includes("réussie")) {
-            setTimeout(() => window.location.href = "/user/profile", 500);
-        }
-    })
+    if (res.message.includes("réussie")) {
+        setTimeout(() => window.location.href = "/user/profile/" + encodeURIComponent(res.username), 500);
+    }
+})
     .catch(error => {
         console.error("Erreur:", error);
         document.getElementById("message").innerText = "Erreur lors de la connexion.";
@@ -73,7 +73,7 @@ function loginUser(event) {
         const top = (screen.height - height) / 2;
     
         window.open(
-            "http://localhost:8080/auth/google/login",  // L'URL d'authentification Google
+            "https://localhost:8443/auth/google/login",  // L'URL d'authentification Google
             "GoogleLoginPopup",
             `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
         );
