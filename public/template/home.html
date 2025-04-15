@@ -9,6 +9,18 @@
 <body>
     <h2>Bienvenue sur le Forum</h2>
 
+    <form method="GET" action="/entry/home">
+        <label for="category">Filtrer par catégorie :</label>
+        <select name="category" id="category">
+            <option value="">-- Toutes les catégories --</option>
+            {{range .Categories}}
+                <option value="{{.ID}}">{{.Name}}</option>
+            {{end}}
+        </select>
+        <button type="submit">Filtrer</button>
+    </form>
+    
+
     <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications</button>
     <div id="notifDropdown" class="notif-dropdown" style="display:none;">
         <h4>Notifications</h4>
@@ -20,11 +32,29 @@
     <form action="/user/create-post" method="POST" enctype="multipart/form-data">
         <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
         <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
+    
+        <!-- CASES À COCHER POUR LES CATÉGORIES -->
+        <label>Choisir les catégories :</label><br>
+        {{range .Categories}}
+            <label>
+                <input type="checkbox" name="categories" value="{{.ID}}">
+                {{.Name}}
+            </label><br>
+        {{end}}
+    
         <button type="submit">Publier</button>
     </form>
+    
 
     <h3>Publications récentes</h3>
     {{range .Posts}}
+        <div>
+            <strong>Catégories :</strong>
+            {{range .Categories}}
+                <span>{{.Name}}</span>
+            {{end}}
+        </div>
+    
         <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
             <p><strong>Posté par :</strong> {{.Username}}</p>
             <p id="content-{{.ID}}">{{.Content}}</p>
