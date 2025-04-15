@@ -170,7 +170,7 @@ func (u *User) Normalize() {
 type Activity struct {
 	Type      string
 	Content   string
-	Target    string // tittre post ou commentaire
+	Target    string
 	CreatedAt time.Time
 }
 
@@ -225,10 +225,19 @@ func GetUserActivity(userID string) ([]Activity, error) {
 	var activities []Activity
 	for rows.Next() {
 		var a Activity
-		err := rows.Scan(&a.Type, &a.Content, &a.Target, &a.CreatedAt)
+		var rawTarget sql.NullString
+
+		err := rows.Scan(&a.Type, &a.Content, &rawTarget, &a.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		if rawTarget.Valid {
+			a.Target = rawTarget.String
+		} else {
+			a.Target = "(contenu supprimé)" // ou juste "", comme tu préfères
+		}
+
 		activities = append(activities, a)
 	}
 	return activities, nil

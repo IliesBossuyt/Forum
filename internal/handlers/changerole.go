@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"Forum/internal/database"
+	"Forum/internal/models"
 	"encoding/json"
 	"net/http"
 )
 
-// Rôles autorisés
+// Rôles
 var validRoles = map[string]bool{
 	"user":      true,
 	"moderator": true,
@@ -34,6 +35,13 @@ func ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 	_, err := database.DB.Exec("UPDATE users SET role = ? WHERE id = ?", requestData.Role, requestData.UserID)
 	if err != nil {
 		http.Error(w, "Erreur mise à jour", http.StatusInternalServerError)
+		return
+	}
+
+	// Mettre à jour le rôle dans la table session (si l'utilisateur est connecté)
+	err = models.UpdateUserSessionRole(requestData.UserID, requestData.Role)
+	if err != nil {
+		http.Error(w, "Erreur lors de la mise à jour de la session", http.StatusInternalServerError)
 		return
 	}
 

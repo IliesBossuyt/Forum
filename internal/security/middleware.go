@@ -29,7 +29,6 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 
 			cookie, err := r.Cookie("session")
 			if err == nil {
-				// Token présent → validation
 				// Vérifier le token (signature et User-Agent)
 				uid, userRole, valid := ValidateSecureToken(cookie.Value, r.UserAgent())
 				if valid {
@@ -38,7 +37,7 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 
 					// Vérifier la session en base de données
 					sessionUUID := ExtractUUID(cookie.Value)
-					storedUserID, storedRole, expiresAt, err := GetUserIDFromSession(sessionUUID)
+					storedUserID, storedRole, expiresAt, err := models.GetUserIDFromSession(sessionUUID)
 					if err != nil || storedUserID != userID || storedRole != role || expiresAt.Before(time.Now()) {
 						http.Error(w, "Session invalide ou expirée", http.StatusUnauthorized)
 						return

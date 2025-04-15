@@ -3,9 +3,11 @@ package router
 import (
 	"Forum/internal/database"
 	"Forum/internal/handlers"
+	"Forum/internal/models"
 	"Forum/internal/security"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func redirectToHTTPS(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +99,14 @@ func Router() {
 
 	// Appliquer le rate limit global
 	secureHandler = security.RateLimitGlobal(secureHandler)
+
+	// Lancer le nettoyage périodique des sessions expirées
+	go func() {
+		for {
+			models.CleanExpiredSessions()
+			time.Sleep(24 * time.Hour)
+		}
+	}()
 
 	// Redirection HTTP → HTTPS
 	go func() {

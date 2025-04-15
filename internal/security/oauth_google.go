@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -77,20 +78,17 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Utilisateur Google récupéré :", googleUser.Name, googleUser.Email, googleUser.ID)
-
 	// Vérifier si l'utilisateur existe déjà en base
 	user, err := models.GetUserByEmail(googleUser.Email)
 	if err != nil {
-		fmt.Println("ERREUR SQL lors de la vérification de l'utilisateur :", err)
 		http.Error(w, "Erreur interne", http.StatusInternalServerError)
 		return
 	}
 
 	// Si l'utilisateur n'existe pas, le créer
 	if user == nil {
-		fmt.Println("Utilisateur non trouvé, tentative de création :", googleUser.Name, googleUser.Email, googleUser.ID)
-		err = models.CreateGoogleUser(googleUser.Name, googleUser.Email, googleUser.ID)
+		cleanName := strings.ReplaceAll(googleUser.Name, " ", "")
+		err = models.CreateGoogleUser(cleanName, googleUser.Email, googleUser.ID)
 		if err != nil {
 			http.Error(w, "Erreur lors de la création de l'utilisateur", http.StatusInternalServerError)
 			return
@@ -116,11 +114,11 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
     <script>
         if (window.opener) {
-            window.opener.location.href = "/user/profile"; // Rediriger vers /profile
+            window.opener.location.href = "/user/profile/%s"; // Rediriger vers /profile/username
             window.close(); // Fermer la pop-up
         } else {
-            window.location.href = "/user/profile"; // Si pas d'opener, rediriger normalement
+            window.location.href = "/user/profile/%s"; // Redirection normale
         }
     </script>
-`)
+	`, user.Username, user.Username)
 }

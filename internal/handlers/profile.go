@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"Forum/internal/models"
@@ -34,11 +35,17 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodGet {
 		if isOwner {
-			user.Warns, _ = models.GetWarnsByUserID(user.ID)
+			user.Warns, err = models.GetWarnsByUserID(user.ID)
+			if err != nil {
+				fmt.Println("Erreur de chargement des avertissements", err)
+			}
 		}
 
 		if user.IsPublic || isOwner {
-			activities, _ = models.GetUserActivity(user.ID)
+			activities, err = models.GetUserActivity(user.ID)
+			if err != nil {
+				fmt.Println("Erreur de chargement des activités", err)
+			}
 		}
 
 		// Affichage du profil

@@ -1,7 +1,8 @@
-package security
+package models
 
 import (
 	"Forum/internal/database"
+	"fmt"
 	"time"
 )
 
@@ -34,4 +35,18 @@ func GetUserIDFromSession(sessionUUID string) (string, string, time.Time, error)
 	}
 
 	return userID, role, expiresAt, nil
+}
+
+func UpdateUserSessionRole(userID, newRole string) error {
+	_, err := database.DB.Exec(`
+		UPDATE sessions SET role = ? WHERE user_id = ?
+	`, newRole, userID)
+	return err
+}
+
+func CleanExpiredSessions() {
+	_, err := database.DB.Exec("DELETE FROM sessions WHERE expires_at < NOW()")
+	if err != nil {
+		fmt.Println("Erreur nettoyage des sessions expirées :", err)
+	}
 }

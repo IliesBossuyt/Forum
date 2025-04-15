@@ -4,6 +4,7 @@ import (
 	"Forum/internal/models"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"net/http"
 	"os"
@@ -36,7 +37,7 @@ func init() {
 	}
 }
 
-// 🔹 Redirection vers GitHub pour authentification
+// Redirection vers GitHub pour authentification
 func GitHubLogin(w http.ResponseWriter, r *http.Request) {
 	url := githubOAuthConfig.AuthCodeURL("randomstate", oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
@@ -50,7 +51,7 @@ type GitHubUser struct {
 	ID    int    `json:"id"`    // ID unique GitHub
 }
 
-// 🔹 Callback après connexion GitHub
+// Callback après connexion GitHub
 func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -88,7 +89,10 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 		username = githubUser.Login
 	}
 
-	// 🔹 Vérifier si l'email est vide et récupérer l'email principal si nécessaire
+	// Nettoyer le username (supprimer les espaces)
+	username = strings.ReplaceAll(username, " ", "")
+
+	// Vérifier si l'email est vide et récupérer l'email principal si nécessaire
 	if githubUser.Email == "" {
 		respEmails, err := client.Get("https://api.github.com/user/emails")
 		if err != nil {
@@ -147,16 +151,17 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirection via un script JS qui ferme la pop-up et redirige vers /profile
+	// Redirection vers le profil public du user
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `
-    <script>
-        if (window.opener) {
-            window.opener.location.href = "/user/profile"; // Rediriger vers /profile
-            window.close(); // Fermer la pop-up
-        } else {
-            window.location.href = "/user/profile"; // Si pas d'opener, rediriger normalement
-        }
-    </script>
-`)
+		<script>
+			const username = %q;
+			if (window.opener) {
+				window.opener.location.href = "/user/profile/" + username;
+				window.close();
+			} else {
+				window.location.href = "/user/profile/" + username;
+			}
+		</script>
+	`, user.Username)
 }

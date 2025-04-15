@@ -44,7 +44,7 @@ func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) 
 
 	if hmac.Equal([]byte(receivedSignature), []byte(expectedSignature)) {
 		// Récupérer `userID` et `role` depuis la session en base
-		userID, storedRole, expiresAt, err := GetUserIDFromSession(sessionUUID)
+		userID, storedRole, expiresAt, err := models.GetUserIDFromSession(sessionUUID)
 		if err != nil {
 			return "", "", false
 		}
@@ -80,7 +80,7 @@ func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) e
 	// Insérer en base
 	sessionUUID := ExtractUUID(token)
 
-	err = CreateSession(sessionUUID, userID, userAgent, role, expirationTime)
+	err = models.CreateSession(sessionUUID, userID, userAgent, role, expirationTime)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) e
 func DeleteCookie(w http.ResponseWriter, token string) {
 	// Supprimer en base
 	sessionUUID := ExtractUUID(token)
-	DeleteSession(sessionUUID)
+	models.DeleteSession(sessionUUID)
 
 	// Supprimer le cookie
 	http.SetCookie(w, &http.Cookie{

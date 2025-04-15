@@ -63,7 +63,7 @@
     </div>
     {{end}}
 
-    {{if .User.IsPublic}}
+    {{if or .User.IsPublic .IsOwner}}
         <h3>Activité de l'utilisateur</h3>
         <ul>
         {{range .Activities}}
