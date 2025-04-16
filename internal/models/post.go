@@ -210,3 +210,38 @@ func LinkPostToCategories(postID int, categoryIDs []int) error {
 	}
 	return nil
 }
+
+
+func GetTopPosts() ([]Post, error) {
+	rows, err := database.DB.Query(`
+		SELECT p.id, p.user_id, u.username, p.content, p.image, p.created_at,
+		       COALESCE(SUM(CASE WHEN l.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
+		       COALESCE(SUM(CASE WHEN l.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		LEFT JOIN likes l ON p.id = l.post_id
+		GROUP BY p.id, p.user_id, u.username, p.content, p.image, p.created_at
+		ORDER BY likes DESC
+		LIMIT 20
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		err := rows.Scan(&post.ID, &post.UserID, &post.Username, &post.Content, &post.Image, &post.CreatedAt, &post.Likes, &post.Dislikes)
+		if err != nil {
+			return nil, err
+		}
+		categories, err := GetCategoriesByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+		post.Categories = categories
+		posts = append(posts, post)
+	}
+	return posts, nil
+}
