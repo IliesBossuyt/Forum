@@ -11,22 +11,28 @@ import (
 
 // Gestion de la page d'accueil (forum)
 func Home(w http.ResponseWriter, r *http.Request) {
-	// Récupérer userID et rôle depuis le middleware
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 	role, _ := r.Context().Value(security.ContextRoleKey).(string)
 
-	// Récupération des catégories pour l'affichage
 	categories, err := models.GetAllCategories()
 	if err != nil {
 		http.Error(w, "Erreur de récupération des catégories", http.StatusInternalServerError)
 		return
 	}
 
-	// Vérifie s’il y a un filtre de catégorie dans l’URL
+	sort := r.URL.Query().Get("sort")
 	categoryIDStr := r.URL.Query().Get("category")
 
 	var posts []models.Post
-	if categoryIDStr != "" {
+
+	if sort == "top" {
+		// 🔥 Tri par likes
+		posts, err = models.GetTopPosts()
+		if err != nil {
+			http.Error(w, "Erreur lors de la récupération des posts populaires", http.StatusInternalServerError)
+			return
+		}
+	} else if categoryIDStr != "" {
 		// Filtrage par catégorie
 		categoryID, err := strconv.Atoi(categoryIDStr)
 		if err != nil {
@@ -39,7 +45,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// Récupération de tous les posts
+		// Tous les posts
 		posts, err = models.GetAllPosts()
 		if err != nil {
 			http.Error(w, "Erreur de récupération des posts", http.StatusInternalServerError)
@@ -47,7 +53,6 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Associer les commentaires et infos utilisateur à chaque post
 	for i := range posts {
 		comments, err := models.GetCommentsByPostID(posts[i].ID, userID)
 		if err != nil {
@@ -59,7 +64,6 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		posts[i].CurrentUserRole = role
 	}
 
-	// Struct pour le template
 	data := struct {
 		UserID     string
 		Role       string
@@ -72,14 +76,12 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		Categories: categories,
 	}
 
-	// Chargement du template HTML
 	tmpl, err := template.ParseFiles("../public/template/home.html")
 	if err != nil {
 		http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
 		return
 	}
 
-	// Exécution du template avec les données
 	err = tmpl.Execute(w, data)
 	if err != nil {
 		http.Error(w, "Erreur d'exécution du template", http.StatusInternalServerError)
