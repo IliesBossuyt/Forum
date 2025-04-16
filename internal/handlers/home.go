@@ -3,6 +3,7 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"Forum/internal/models"
 	"Forum/internal/security"
@@ -14,14 +15,39 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 	role, _ := r.Context().Value(security.ContextRoleKey).(string)
 
-	// Récupération des posts
-	posts, err := models.GetAllPosts()
+	// Récupération des catégories pour l'affichage
+	categories, err := models.GetAllCategories()
 	if err != nil {
-		http.Error(w, "Erreur de récupération des posts", http.StatusInternalServerError)
+		http.Error(w, "Erreur de récupération des catégories", http.StatusInternalServerError)
 		return
 	}
 
-	// Associer les commentaires à chaque post
+	// Vérifie s’il y a un filtre de catégorie dans l’URL
+	categoryIDStr := r.URL.Query().Get("category")
+
+	var posts []models.Post
+	if categoryIDStr != "" {
+		// Filtrage par catégorie
+		categoryID, err := strconv.Atoi(categoryIDStr)
+		if err != nil {
+			http.Error(w, "Catégorie invalide", http.StatusBadRequest)
+			return
+		}
+		posts, err = models.GetPostsByCategoryID(categoryID)
+		if err != nil {
+			http.Error(w, "Erreur lors de la récupération des posts par catégorie", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Récupération de tous les posts
+		posts, err = models.GetAllPosts()
+		if err != nil {
+			http.Error(w, "Erreur de récupération des posts", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Associer les commentaires et infos utilisateur à chaque post
 	for i := range posts {
 		comments, err := models.GetCommentsByPostID(posts[i].ID, userID)
 		if err != nil {
@@ -33,15 +59,17 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		posts[i].CurrentUserRole = role
 	}
 
-	// Struct pour passer au template
+	// Struct pour le template
 	data := struct {
-		UserID string
-		Role   string
-		Posts  []models.Post
+		UserID     string
+		Role       string
+		Posts      []models.Post
+		Categories []models.Category
 	}{
-		UserID: userID,
-		Role:   role,	
-		Posts:  posts,
+		UserID:     userID,
+		Role:       role,
+		Posts:      posts,
+		Categories: categories,
 	}
 
 	// Chargement du template HTML

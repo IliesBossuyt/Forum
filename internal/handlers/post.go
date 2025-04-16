@@ -3,6 +3,7 @@ package handlers
 import (
 	"io"
 	"net/http"
+	"strconv"
 
 	"Forum/internal/models"
 	"Forum/internal/security"
@@ -28,7 +29,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	// Récupérer userID et rôle depuis le middleware
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
-	
+
 	// Vérification du contenu du post : il faut AU MOINS du texte ou une image
 	content := r.FormValue("content")
 
@@ -82,11 +83,28 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insérer le post dans la base de données
-	err = models.CreatePost(userID, content, imageData)
+	postID, err := models.CreatePost(userID, content, imageData)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du post", http.StatusInternalServerError)
 		return
 	}
+	categoryIDsStr := r.Form["categories"]
+	var categoryIDs []int
+	for _, idStr := range categoryIDsStr {
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "Catégorie invalide", http.StatusBadRequest)
+			return
+		}
+		categoryIDs = append(categoryIDs, id)
+	}
+
+	err = models.LinkPostToCategories(postID, categoryIDs)
+	if err != nil {
+		http.Error(w, "Erreur lors du lien post-catégories", http.StatusInternalServerError)
+		return
+	}
+
 	// Rediriger vers /home après la publication
 	http.Redirect(w, r, "/entry/home", http.StatusSeeOther)
 }

@@ -17,6 +17,7 @@ type Post struct {
 	CurrentUserID   string
 	CurrentUserRole string
 	Comments        []Comment
+	Categories      []Category
 }
 
 // Récupérer tous les posts
@@ -43,17 +44,33 @@ func GetAllPosts() ([]Post, error) {
 		if err != nil {
 			return nil, err
 		}
+		categories, err := GetCategoriesByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+		post.Categories = categories
+
 		posts = append(posts, post)
 	}
+
 	return posts, nil
 }
 
-func CreatePost(userID, content string, image []byte) error {
-	_, err := database.DB.Exec(
+func CreatePost(userID, content string, image []byte) (int, error) {
+	result, err := database.DB.Exec(
 		"INSERT INTO posts (user_id, content, image, created_at) VALUES (?, ?, ?, ?)",
 		userID, content, image, time.Now(),
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	postID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(postID), nil
 }
 
 func GetPostByID(postID int) (*Post, error) {
@@ -117,5 +134,79 @@ func DeletePost(postID int) error {
 		return err
 	}
 
+	return nil
+}
+
+func GetCategoriesByPostID(postID int) ([]Category, error) {
+	rows, err := database.DB.Query(`
+		SELECT c.id, c.name
+		FROM category c
+		INNER JOIN post_category pc ON c.id = pc.category_id
+		WHERE pc.post_id = ?`, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var cat Category
+		if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
+			return nil, err
+		}
+		categories = append(categories, cat)
+	}
+	return categories, nil
+}
+
+
+func GetPostsByCategoryID(categoryID int) ([]Post, error) {
+	rows, err := database.DB.Query(`
+		SELECT p.id, p.user_id, u.username, p.content, p.image, p.created_at,
+		       COALESCE(SUM(CASE WHEN l.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
+		       COALESCE(SUM(CASE WHEN l.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		LEFT JOIN likes l ON p.id = l.post_id
+		INNER JOIN post_category pc ON p.id = pc.post_id
+		WHERE pc.category_id = ?
+		GROUP BY p.id, p.user_id, u.username, p.content, p.image, p.created_at
+		ORDER BY p.created_at DESC
+	`, categoryID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		err := rows.Scan(&post.ID, &post.UserID, &post.Username, &post.Content, &post.Image, &post.CreatedAt, &post.Likes, &post.Dislikes)
+		if err != nil {
+			return nil, err
+		}
+
+		// Ajouter les catégories du post
+		categories, err := GetCategoriesByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+		post.Categories = categories
+
+		posts = append(posts, post)
+	}
+	return posts, nil
+}
+
+func LinkPostToCategories(postID int, categoryIDs []int) error {
+	for _, categoryID := range categoryIDs {
+		_, err := database.DB.Exec(`
+			INSERT INTO post_category (post_id, category_id)
+			VALUES (?, ?)`, postID, categoryID)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
