@@ -29,7 +29,6 @@ func Router() {
 
 	// Guest routes
 	guestRouter := http.NewServeMux()
-	guestRouter.HandleFunc("/", handlers.Accueil)
 	guestRouter.HandleFunc("/home", handlers.Home)
 	guestRouter.HandleFunc("/image/", handlers.GetImage)
 	routeManager.Handle("/entry/", requireRole("guest", "user", "admin", "moderator")(

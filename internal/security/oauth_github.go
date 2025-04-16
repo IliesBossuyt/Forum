@@ -155,13 +155,12 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `
 		<script>
-			const username = %q;
 			if (window.opener) {
-				window.opener.location.href = "/user/profile/" + username;
+				window.opener.location.href = "/entry/home";
 				window.close();
 			} else {
-				window.location.href = "/user/profile/" + username;
+				window.location.href = "/entry/home";
 			}
 		</script>
-	`, user.Username)
+	`,)
 }

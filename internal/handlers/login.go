@@ -19,7 +19,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			if valid {
 				user, err := models.GetUserByID(userID)
 				if err == nil && user != nil && !user.Banned {
-					http.Redirect(w, r, "/profile/"+user.Username, http.StatusSeeOther)
+					http.Redirect(w, r, "/entry/home", http.StatusSeeOther)
 					return
 				}
 			}

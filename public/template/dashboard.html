@@ -4,125 +4,256 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/dashboard.css">
-    <title>Panneau Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
+    <title>Panneau Admin - Forum</title>
 </head>
 <body data-user-role="{{.CurrentUserRole}}">
-    <h2>Panneau d'administration</h2>
-    <table border="1">
-        <tr>
-            <th>Nom d'utilisateur</th>
-            <th>Rôle</th>
-            <th>Action</th>
-            <th>Bannissement</th>
-            <th>Warn</th>
-        </tr>
-        {{range .Users}}
-        <tr>
-            <td>{{.Username}}</td>
-            <td>
-                <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
-                    <option value="user" {{if eq .Role "user"}}selected{{end}}>User</option>
-                    <option value="moderator" {{if eq .Role "moderator"}}selected{{end}}>Moderator</option>
-                    <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
-                </select>
-            </td>
-            <td>
-                <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
-            </td>
-            <td>
-                <button data-userid="{{.ID}}" data-banned="{{.Banned}}" class="ban-toggle-btn">
-                    {{if .Banned}}Débannir{{else}}Bannir{{end}}
-                </button>
-            </td>
-            <td>
-                <button class="warn-user-btn" data-userid="{{.ID}}" data-username="{{.Username}}">
-                    Casier
-                </button>
-                <span class="warn-count" id="warn-count-{{.ID}}">
-                    ({{index $.WarnCounts .ID}})
-                </span>
-            </td>                                
-        </tr>
-        {{end}}
-    </table>
+    <div class="dashboard-container">
+        <!-- Logo en haut à gauche -->
+        <div class="site-logo">
+            <a href="/entry/home">
+                <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
+            </a>
+        </div>
+        
+        <h2>Panneau d'administration</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom d'utilisateur</th>
+                    <th>Rôle</th>
+                    <th>Action</th>
+                    <th>Bannissement</th>
+                    <th>Warn</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Users}}
+                <tr>
+                    <td>{{.Username}}</td>
+                    <td>
+                        <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
+                            <option value="user" {{if eq .Role "user"}}selected{{end}}>User</option>
+                            <option value="moderator" {{if eq .Role "moderator"}}selected{{end}}>Moderator</option>
+                            <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
+                    </td>
+                    <td>
+                        <button data-userid="{{.ID}}" data-banned="{{.Banned}}" class="ban-toggle-btn">
+                            {{if .Banned}}Débannir{{else}}Bannir{{end}}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="warn-user-btn" data-userid="{{.ID}}" data-username="{{.Username}}">
+                            Casier
+                        </button>
+                        <span class="warn-count" id="warn-count-{{.ID}}">
+                            ({{index $.WarnCounts .ID}})
+                        </span>
+                    </td>                                
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
 
-    <h3>Posts signalés</h3>
-    <ul>
-        {{range .Reports}}
-        <li style="margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 15px;">
-            <strong>Post signalé</strong><br>
-            <strong>Contenu :</strong> "{{.PostContent}}"<br>
-            {{if .PostImage}}
-                <strong>Image :</strong><br>
-                <img src="/entry/image/{{.PostID}}" alt="Image du post"  width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.PostID}}')"><br>
-            {{end}}
-            <strong>Auteur du post :</strong> {{.PostAuthor}}<br>
-            <strong>Signalé par :</strong> {{.Reporter}}<br>
-            <strong>Raison :</strong> {{.Reason}}<br>
-            <strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}
-            <br><br>
-            <button class="delete-report-btn" data-reportid="{{.ID}}">
-                Supprimer le signalement
-            </button>
-
-            <button class="ban-post-author-btn" data-userid="{{.PostAuthorID}}">
-                Bannir l'auteur du post
-            </button>
-
-            <button class="delete-post-btn" data-postid="{{.PostID}}">
-                Supprimer le post
-            </button>            
-        </li>
-        {{end}}
-    </ul>
-
-    <h3>Commentaires signalés</h3>
+        <h3>Posts signalés</h3>
         <ul>
-            {{range .CommentReports}}
-            <li style="margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 15px;">
-                <strong>Commentaire signalé</strong><br>
-                <strong>Contenu :</strong> "{{.CommentText}}"<br>
-                <strong>Auteur :</strong> {{.CommentAuthor}}<br>
-                <strong>Signalé par :</strong> {{.Reporter}}<br>
-                <strong>Raison :</strong> {{.Reason}}<br>
-                <strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}<br><br>
+            {{range .Reports}}
+            <li class="report-item">
+                <div><strong>Post signalé :</strong></div>
+                <div class="report-content">"{{.PostContent}}"</div>
                 
-                <button class="delete-comment-report-btn" data-reportid="{{.ID}}">
-                    Supprimer le signalement
-                </button>
+                {{if .PostImage}}
+                <div>
+                    <strong>Image :</strong>
+                    <img src="/entry/image/{{.PostID}}" alt="Image du post" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.PostID}}')">
+                </div>
+                {{end}}
+                
+                <div><strong>Auteur du post :</strong> {{.PostAuthor}}</div>
+                <div><strong>Signalé par :</strong> {{.Reporter}}</div>
+                <div><strong>Raison :</strong> {{.Reason}}</div>
+                <div><strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}</div>
+                
+                <div class="report-actions">
+                    <button class="delete-report-btn" data-reportid="{{.ID}}">
+                        Supprimer le signalement
+                    </button>
 
-                <button class="ban-comment-author-btn" data-userid="{{.CommentAuthorID}}">
-                    Bannir l'auteur du commentaire
-                </button>
+                    <button class="ban-post-author-btn" data-userid="{{.PostAuthorID}}">
+                        Bannir l'auteur du post
+                    </button>
 
-                <button class="delete-comment-btn" data-commentid="{{.CommentID}}">
-                    Supprimer le commentaire
-                </button>                
+                    <button class="delete-post-btn" data-postid="{{.PostID}}">
+                        Supprimer le post (et le signalement)
+                    </button>    
+                </div>        
             </li>
             {{end}}
         </ul>
 
+        <h3>Commentaires signalés</h3>
+        <ul>
+            {{range .CommentReports}}
+            <li class="report-item">
+                <div><strong>Commentaire signalé :</strong></div>
+                <div class="report-content">"{{.CommentText}}"</div>
+                
+                <div><strong>Auteur :</strong> {{.CommentAuthor}}</div>
+                <div><strong>Signalé par :</strong> {{.Reporter}}</div>
+                <div><strong>Raison :</strong> {{.Reason}}</div>
+                <div><strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}</div>
+                
+                <div class="report-actions">
+                    <button class="delete-comment-report-btn" data-reportid="{{.ID}}">
+                        Supprimer le signalement
+                    </button>
 
-    <!-- Fenêtre modale pour afficher les images en grand -->
-    <div id="imageModal" onclick="closeModal()">
-        <span class="close">&times;</span>
-        <img id="modalContent">
+                    <button class="ban-comment-author-btn" data-userid="{{.CommentAuthorID}}">
+                        Bannir l'auteur du commentaire
+                    </button>
+
+                    <button class="delete-comment-btn" data-commentid="{{.CommentID}}">
+                        Supprimer le commentaire (et le signalement)
+                    </button>
+                </div>                
+            </li>
+            {{end}}
+        </ul>
+
+        <!-- Fenêtre modale pour afficher les images en grand -->
+        <div id="imageModal" onclick="closeModal()">
+            <span class="close">&times;</span>
+            <img id="modalContent">
+        </div>
+
+        <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); z-index:999;">
+            <h3 id="warnModalTitle">Casier</h3>
+            <ul id="warnList"></ul>
+            <textarea id="warnReason" placeholder="Raison de l'avertissement..." rows="3"></textarea>
+            <div style="display: flex; gap: 10px; justify-content: space-between;">
+                <button id="addWarnBtn" style="flex: 1; background-color: #ff9800;">Ajouter un avertissement</button>
+                <button onclick="closeWarnModal()" style="flex: 1; background-color: #333;">Fermer</button>
+            </div>
+        </div>
     </div>
 
-    <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:2px solid #333; max-width:500px; z-index:999;">
-        <h3 id="warnModalTitle">Casier</h3>
-        <ul id="warnList" style="max-height:200px; overflow:auto;"></ul>
-        <textarea id="warnReason" placeholder="Raison du warn..." rows="3" style="width:100%;"></textarea><br>
-        <button id="addWarnBtn">Ajouter un avertissement</button>
-        <button onclick="closeWarnModal()">Fermer</button>
+    <!-- Conteneur des notifications -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Conteneur pour la boîte de confirmation -->
+    <div class="confirm-overlay" id="confirm-overlay" style="display: none;">
+        <div class="confirm-dialog" id="confirm-dialog">
+            <div class="confirm-title" id="confirm-title">Confirmation</div>
+            <div class="confirm-message" id="confirm-message"></div>
+            <div class="confirm-buttons">
+                <button class="confirm-cancel" id="confirm-cancel">Annuler</button>
+                <button class="confirm-ok" id="confirm-ok">Confirmer</button>
+            </div>
+        </div>
     </div>
-    
-
-</body>
-</html>
-
 
 <script>
+// Fonction de gestion des notifications
+function showNotification(message, type = 'success', duration = 5000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    const id = 'notification-' + Date.now();
+    notification.id = id;
+    notification.className = `notification ${type}`;
+
+    notification.innerHTML = `
+        <div class="notification-content">${message}</div>
+        <button class="notification-close" onclick="removeNotification('${id}')">&times;</button>
+        <div class="notification-progress" style="animation: progressBar ${duration}ms linear forwards;"></div>
+    `;
+
+    container.appendChild(notification);
+
+    // Supprimer automatiquement après la durée spécifiée
+    setTimeout(() => {
+        removeNotification(id);
+    }, duration);
+}
+
+function removeNotification(id) {
+    const notification = document.getElementById(id);
+    if (!notification) return;
+    
+    notification.style.animation = 'slideOut 0.3s ease-out forwards';
+    setTimeout(() => {
+        notification.remove();
+    }, 300);
+}
+
+// Fonction de confirmation personnalisée
+function showConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('confirm-overlay');
+        const dialog = document.getElementById('confirm-dialog');
+        const title = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        const okButton = document.getElementById('confirm-ok');
+        const cancelButton = document.getElementById('confirm-cancel');
+        
+        // Définir le type (danger, success, warning)
+        dialog.className = 'confirm-dialog';
+        okButton.className = 'confirm-ok';
+        
+        if (options.type) {
+            dialog.classList.add(options.type);
+            okButton.classList.add(options.type);
+        } else {
+            dialog.classList.add('danger'); // Par défaut
+            okButton.classList.add('danger'); 
+        }
+        
+        // Définir titre et message
+        title.textContent = options.title || 'Confirmation';
+        messageEl.textContent = message;
+        
+        // Définir texte des boutons
+        okButton.textContent = options.okText || 'Confirmer';
+        cancelButton.textContent = options.cancelText || 'Annuler';
+        
+        // Afficher la boîte de dialogue
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.classList.add('confirm-visible');
+        }, 10);
+        
+        // Gestionnaires d'événements
+        function handleOk() {
+            overlay.classList.remove('confirm-visible');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+            okButton.removeEventListener('click', handleOk);
+            cancelButton.removeEventListener('click', handleCancel);
+            resolve(true);
+        }
+        
+        function handleCancel() {
+            overlay.classList.remove('confirm-visible');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+            okButton.removeEventListener('click', handleOk);
+            cancelButton.removeEventListener('click', handleCancel);
+            resolve(false);
+        }
+        
+        okButton.addEventListener('click', handleOk);
+        cancelButton.addEventListener('click', handleCancel);
+    });
+}
+
+// Remplacer les alertes par notre système de notifications
 document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".update-role-btn").forEach(button => {
         button.addEventListener("click", function () {
@@ -137,14 +268,14 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert("Rôle mis à jour avec succès !");
+                    showNotification("Rôle mis à jour avec succès !", "success");
                 } else {
-                    alert("Erreur : " + data.message);
+                    showNotification("Erreur : " + data.message, "error");
                 }
             })
             .catch(error => {
                 console.error("Erreur :", error);
-                alert("Une erreur est survenue.");
+                showNotification("Une erreur est survenue.", "error");
             });
         });
     });
@@ -168,28 +299,29 @@ document.querySelectorAll(".ban-toggle-btn").forEach(button => {
             if (data.success) {
                 this.innerText = newBannedState ? "Débannir" : "Bannir";
                 this.setAttribute("data-banned", newBannedState.toString());
-                alert("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !");
+                showNotification("Utilisateur " + (newBannedState ? "banni" : "débanni") + " avec succès !", "success");
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         })
         .catch(error => {
             console.error("Erreur :", error);
-            alert("Une erreur est survenue.");
+            showNotification("Une erreur est survenue.", "error");
         });
     });
 });
 
+// Fonctions modales d'image inchangées
 function openModal(imageSrc) {
-let modal = document.getElementById("imageModal");
-let modalImg = document.getElementById("modalContent");
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalContent");
 
-modalImg.src = imageSrc;
-modal.style.display = "flex";
-setTimeout(() => {
-    modal.style.opacity = "1";
-    modalImg.style.transform = "scale(1)";
-}, 10);
+    modalImg.src = imageSrc;
+    modal.style.display = "flex";
+    setTimeout(() => {
+        modal.style.opacity = "1";
+        modalImg.style.transform = "scale(1)";
+    }, 10);
 }
 
 function closeModal() {
@@ -205,11 +337,17 @@ function closeModal() {
 
 // Supprimer un signalement
 document.querySelectorAll(".delete-report-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const reportIDString = button.getAttribute("data-reportid");
         const reportID = parseInt(reportIDString, 10);
 
-        if (!confirm("Supprimer ce signalement ?")) return;
+        const confirmed = await showConfirm("Voulez-vous vraiment supprimer ce signalement ?", {
+            title: "Supprimer le signalement",
+            type: "danger",
+            okText: "Supprimer"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/delete-report-post", {
             method: "POST",
@@ -219,10 +357,10 @@ document.querySelectorAll(".delete-report-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Signalement supprimé !");
+                showNotification("Signalement supprimé !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         });
     });
@@ -230,9 +368,16 @@ document.querySelectorAll(".delete-report-btn").forEach(button => {
 
 // Bannir l'auteur du post signalé
 document.querySelectorAll(".ban-post-author-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const userID = button.getAttribute("data-userid");
-        if (!confirm("Bannir cet utilisateur ?")) return;
+        
+        const confirmed = await showConfirm("Voulez-vous vraiment bannir cet utilisateur ?", {
+            title: "Bannir l'utilisateur",
+            type: "danger",
+            okText: "Bannir"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/secure/toggle-ban", {
             method: "POST",
@@ -242,10 +387,10 @@ document.querySelectorAll(".ban-post-author-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Utilisateur banni !");
+                showNotification("Utilisateur banni !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         });
     });
@@ -253,9 +398,16 @@ document.querySelectorAll(".ban-post-author-btn").forEach(button => {
 
 // Supprimer un post signalé
 document.querySelectorAll(".delete-post-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const postID = parseInt(button.getAttribute("data-postid"), 10);
-        if (!confirm("Supprimer ce post ainsi que ses commentaires et signalements ?")) return;
+        
+        const confirmed = await showConfirm("Voulez-vous vraiment supprimer ce post, ses commentaires et signalements ?", {
+            title: "Supprimer le post",
+            type: "danger",
+            okText: "Supprimer"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/delete-post", {
             method: "POST",
@@ -265,16 +417,15 @@ document.querySelectorAll(".delete-post-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Post supprimé !");
+                showNotification("Post supprimé !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         })
-        .catch(() => alert("Erreur lors de la suppression du post."));
+        .catch(() => showNotification("Erreur lors de la suppression du post.", "error"));
     });
 });
-
 
 
 let currentWarnUserID = null;
@@ -313,19 +464,22 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
                     });
 
                     li.innerHTML = `
-                        <div style="margin-bottom: 10px;">
-                            <strong>Modérateur :</strong> ${warn.Issuer}<br>
-                            <strong>Raison :</strong> ${warn.Reason}<br>
-                            <strong>Date :</strong> ${date}
-                        </div>
+                        <div><strong>Modérateur :</strong> <span>${warn.Issuer}</span></div>
+                        <div><strong>Raison :</strong> <span>${warn.Reason}</span></div>
+                        <div><strong>Date :</strong> <span>${date}</span></div>
                     `;
 
                     if (isAdmin) {
                         const deleteBtn = document.createElement("button");
                         deleteBtn.innerText = "Supprimer";
-                        deleteBtn.style.marginTop = "5px";
-                        deleteBtn.addEventListener("click", () => {
-                            if (!confirm("Supprimer ce warn ?")) return;
+                        deleteBtn.addEventListener("click", async () => {
+                            const confirmed = await showConfirm("Voulez-vous vraiment supprimer cet avertissement ?", {
+                                title: "Supprimer l'avertissement",
+                                type: "danger",
+                                okText: "Supprimer"
+                            });
+                            
+                            if (!confirmed) return;
 
                             fetch(`/admin/secure/delete-warn`, {
                                 method: "POST",
@@ -335,7 +489,7 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
                             .then(res => res.json())
                             .then(resp => {
                                 if (resp.success) {
-                                    alert("Warn supprimé !");
+                                    showNotification("Warn supprimé !", "success");
                                     // Supprimer le warn du DOM
                                     li.remove();
 
@@ -346,7 +500,7 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
                                         counterSpan.textContent = `(${currentCount - 1})`;
                                     }
                                 } else {
-                                    alert("Erreur : " + resp.message);
+                                    showNotification("Erreur : " + resp.message, "error");
                                 }
                             });
                         });
@@ -365,7 +519,7 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
 document.getElementById("addWarnBtn").addEventListener("click", () => {
     const reason = document.getElementById("warnReason").value.trim();
     if (!reason) {
-        alert("Raison obligatoire !");
+        showNotification("Raison obligatoire !", "warning");
         return;
     }
 
@@ -377,11 +531,11 @@ document.getElementById("addWarnBtn").addEventListener("click", () => {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert("Avertissement ajouté !");
+            showNotification("Avertissement ajouté !", "success");
             document.getElementById(`warn-count-${currentWarnUserID}`).textContent = `(${data.new_count})`;
             closeWarnModal();
         } else {
-            alert("Erreur : " + data.message);
+            showNotification("Erreur : " + data.message, "error");
         }
     });
 });
@@ -389,9 +543,16 @@ document.getElementById("addWarnBtn").addEventListener("click", () => {
 
 // Supprimer un signalement de commentaire
 document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const reportID = parseInt(button.getAttribute("data-reportid"), 10);
-        if (!confirm("Supprimer ce signalement de commentaire ?")) return;
+        
+        const confirmed = await showConfirm("Voulez-vous vraiment supprimer ce signalement de commentaire ?", {
+            title: "Supprimer le signalement",
+            type: "danger",
+            okText: "Supprimer"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/delete-report-comment", {
             method: "POST",
@@ -401,10 +562,10 @@ document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Signalement supprimé !");
+                showNotification("Signalement supprimé !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         });
     });
@@ -413,9 +574,16 @@ document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
 
 // Bannir l'auteur du commentaire signalé
 document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const userID = button.getAttribute("data-userid");
-        if (!confirm("Bannir cet utilisateur ?")) return;
+        
+        const confirmed = await showConfirm("Voulez-vous vraiment bannir cet utilisateur ?", {
+            title: "Bannir l'utilisateur",
+            type: "danger",
+            okText: "Bannir"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/secure/toggle-ban", {
             method: "POST",
@@ -425,10 +593,10 @@ document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Utilisateur banni !");
+                showNotification("Utilisateur banni !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         });
     });
@@ -436,9 +604,16 @@ document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
 
 // Supprimer un commentaire signalé
 document.querySelectorAll(".delete-comment-btn").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const commentID = parseInt(button.getAttribute("data-commentid"), 10);
-        if (!confirm("Supprimer ce commentaire ?")) return;
+        
+        const confirmed = await showConfirm("Voulez-vous vraiment supprimer ce commentaire ?", {
+            title: "Supprimer le commentaire",
+            type: "danger",
+            okText: "Supprimer"
+        });
+        
+        if (!confirmed) return;
 
         fetch("/admin/delete-comment", {
             method: "POST",
@@ -448,15 +623,15 @@ document.querySelectorAll(".delete-comment-btn").forEach(button => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Commentaire supprimé !");
+                showNotification("Commentaire supprimé !", "success");
                 location.reload();
             } else {
-                alert("Erreur : " + data.message);
+                showNotification("Erreur : " + data.message, "error");
             }
         })
-        .catch(() => alert("Erreur lors de la suppression du commentaire."));
+        .catch(() => showNotification("Erreur lors de la suppression du commentaire.", "error"));
     });
 });
-
-
 </script>
+</body>
+</html>

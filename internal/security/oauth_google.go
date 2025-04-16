@@ -114,11 +114,11 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
     <script>
         if (window.opener) {
-            window.opener.location.href = "/user/profile/%s"; // Rediriger vers /profile/username
+            window.opener.location.href = "/entry/home";
             window.close(); // Fermer la pop-up
         } else {
-            window.location.href = "/user/profile/%s"; // Redirection normale
+            window.location.href = "/entry/home";
         }
     </script>
-	`, user.Username, user.Username)
+	`,)
 }

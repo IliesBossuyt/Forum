@@ -4,41 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/home.css">
-    <title>Forum</title>
+    <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
+    <title>Forum - Accueil</title>
 </head>
-<body>
-    <h2>Bienvenue sur le Forum</h2>
-    
-    <a href="/entry/home?sort=top">🔥 Voir les posts les plus likés</a><br>
-
-    {{if eq .UserID ""}}
-        <div style="margin-bottom: 20px;">
-            <a href="/auth/login"><button>🔑 Se connecter</button></a>
-            <a href="/auth/register"><button>📝 Créer un compte</button></a>
+<body data-user-role="{{.Role}}">
+    <div class="home-container">
+        <!-- Logo en haut à gauche -->
+        <div class="site-logo">
+            <a href="/entry/home">
+                <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
+            </a>
         </div>
-    {{end}}
 
-    <div style="margin-bottom: 20px;">
-        {{if ne .Username ""}}
+        <!-- Navigation en haut à droite -->
+        <div class="top-right-nav">
+            {{if ne .UserID ""}}
             <a href="/user/profile/{{.Username}}"><button>👤 Mon profil</button></a>
+                <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications <span id="notifCount" class="notif-count" style="display: none;">0</span></button>
+            {{else}}
+                <a href="/auth/login"><button>🔑 Se connecter</button></a>
+                <a href="/auth/register"><button>📝 Créer un compte</button></a>
         {{end}}
         {{if or (eq .Role "admin") (eq .Role "moderator")}}
-            <a href="/admin/dashboard"><button>📊 Dashboard</button></a>
+                <a href="/admin/dashboard"><button>📊 Dashboard Admin</button></a>
         {{end}}
     </div>
 
-    <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications</button>
-    <div id="notifDropdown" class="notif-dropdown" style="display:none;">
-        <h4>Notifications</h4>
-        <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
-        <button onclick="deleteAllNotifications()">🗑 Supprimer toutes les notifications</button>
-        <ul id="notifList"></ul>
-    </div>    
-
-    <button onclick="openCreatePostForm()">📝 Créer un post</button>
-
-
-    <form method="GET" action="/entry/home">
+        <h2>Bienvenue sur le Forum</h2>
+        
+        <div class="filter-section">
+            <form method="GET" action="/entry/home" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
         <label for="category">Filtrer par catégorie :</label>
         <select name="category" id="category">
             <option value="">-- Toutes les catégories --</option>
@@ -47,57 +42,91 @@
             {{end}}
         </select>
         <button type="submit">Filtrer</button>
+                
+                <!-- Placé directement dans le même flow -->
+                <a href="/entry/home?sort=top"><button type="button">🔥 Voir les posts les plus likés</button></a>
+                
+                {{if ne .UserID ""}}
+                    <button type="button" class="create-post" onclick="openCreatePostForm()">📝 Créer un post</button>
+                {{end}}
     </form>
+        </div>
 
     <h3>Publications récentes</h3>
+        
     {{range .Posts}}
-    <div id="post-wrapper-{{.ID}}">
-        <div>
-            <strong>Catégories :</strong>
+        <div id="post-wrapper-{{.ID}}" class="post">
+            <div class="post-categories">
             {{range .Categories}}
-                <span>{{.Name}}</span>
+                    <span class="post-category">{{.Name}}</span>
             {{end}}
         </div>
     
-        <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
-            <p><strong>Posté par :</strong> <a href="/user/profile/{{.Username}}">{{.Username}}</a></p>
-            <p id="content-{{.ID}}">{{.Content}}</p>
+            <div id="post-{{.ID}}">
+                <div class="post-header">
+                    <div class="post-author">
+                        <strong>Posté par :</strong> <a href="/user/profile/{{.Username}}">{{.Username}}</a>
+                    </div>
+                    <div class="post-date">
+                        <small>{{.CreatedAt}}</small>
+                    </div>
+                </div>
+                
+                <div class="post-content" id="content-{{.ID}}">{{.Content}}</div>
+                
             {{if .Image}}
-                <img src="/entry/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.ID}}')">
+                <div class="post-image">
+                    <img src="/entry/image/{{.ID}}" alt="Image postée" onclick="openModal('/entry/image/{{.ID}}')">
+                </div>
             {{end}}
             
-            <!-- Affichage des likes et dislikes-->
-            <p>👍 <span id="likes-{{.ID}}">{{.Likes}}</span> | 👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></p>
-            <button onclick="likePost('{{.ID}}', 1)">👍 Like</button>
-            <button onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
-            <button onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
+                <div class="post-stats">
+                    <div>👍 <span id="likes-{{.ID}}">{{.Likes}}</span></div>
+                    <div>👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></div>
+                </div>
+                
+                <div class="post-actions">
+                    <button class="like-btn" onclick="likePost('{{.ID}}', 1)">👍 Like</button>
+                    <button class="dislike-btn" onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+                    <button class="report-btn" onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
 
             <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
             {{if eq .UserID $.UserID}}
-                <button onclick="editPost('{{.ID}}')">✏ Modifier</button>
+                        <button class="edit-btn" onclick="editPost('{{.ID}}')">✏ Modifier</button>
             {{end}}
 
             <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
-            {{if or (eq .UserID $.UserID) (eq $.Role "admin")}}
-                <button onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
+                    {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
+                        <button class="delete-btn" onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
             {{end}}
 
-
             <!-- Bouton Afficher/Masquer les commentaires -->
-            <button onclick="toggleComments('{{.ID}}')">💬 Commentaires</button>
+                    <button class="comment-btn" onclick="toggleComments('{{.ID}}')">💬 Commentaires</button>
+                </div>
 
             <!-- Zone de commentaires -->
-            <div id="comments-{{.ID}}" style="display:none; margin-top: 10px; padding-left: 15px;">
+                <div id="comments-{{.ID}}" class="comments-section" style="display:none;">
                 {{ $post := . }}
                 {{if .Comments}}
                     {{range .Comments}}
-                        <div id="comment-{{.ID}}" style="border: 1px dashed #ccc; margin-bottom: 8px; padding: 5px;">
-                            <p><strong><a href="/user/profile/{{.Username}}">{{.Username}}</a></strong> : {{.Content}}</p>
-                            <small style="color: #aaa;">Posté le {{.CreatedAt}}</small><br>                            
-                            <p>
+                            <div id="comment-{{.ID}}" class="comment">
+                                <div class="comment-header">
+                                    <div class="comment-author">
+                                        <a href="/user/profile/{{.Username}}">{{.Username}}</a>
+                                    </div>
+                                    <div class="comment-date">
+                                        <small>{{.CreatedAt}}</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="comment-content">{{.Content}}</div>
+                                
+                                <div class="comment-stats">
                                 👍 <span id="comment-like-{{.ID}}">{{.Likes}}</span>
                                 | 👎 <span id="comment-dislike-{{.ID}}">{{.Dislikes}}</span>
-                            </p>
+                                </div>
+                                
+                                <div class="comment-actions">
                             <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
                             <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
                             <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
@@ -110,18 +139,20 @@
                                 <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
                             {{end}}                                            
                         </div>
+                            </div>
+                        {{end}}
                     {{end}}
-                {{end}}
-                
 
                 <!-- Formulaire d'ajout de commentaire -->
-                <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..." rows="2" style="width: 100%;"></textarea>
+                    <div class="comment-form">
+                        <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..."></textarea>
                 <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
+                    </div>
+                </div>
             </div>
         </div>
+        {{end}}
     </div>
-    {{end}}
-
 
     <!-- Fenêtre modale pour afficher les images en grand -->
     <div id="imageModal" onclick="closeModal()">
@@ -130,108 +161,199 @@
     </div>
 
     <!-- Formulaire de modification de post (caché par défaut) -->
-    <div id="edit-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+    <div id="edit-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditForm()">&times;</span>
         <h3>Modifier le post</h3>
-        <textarea id="edit-content" rows="3" style="width:100%;"></textarea>
+            <textarea id="edit-content" rows="5" placeholder="Contenu du post..."></textarea>
         <input type="hidden" id="edit-post-id">
-        <br>
+            
+            <div>
         <label for="edit-image">Changer l'image :</label>
         <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
-        <br>
-        <label><input type="checkbox" id="delete-image"> Supprimer l'image</label>
-        <br>
+            </div>
+            
+            <div class="checkbox-container">
+                <input type="checkbox" id="delete-image">
+                <label for="delete-image" style="display: inline;">Supprimer l'image</label>
+            </div>
+            
+            <div class="buttons-container">
         <button onclick="submitEdit()">Enregistrer</button>
-        <button onclick="closeEditForm()">Annuler</button>
+                <button style="background-color: #555;" onclick="closeEditForm()">Annuler</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Fenêtre modale pour confirmer la suppression (style similaire à la modale d'édition) -->
-    <div id="delete-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+    <!-- Fenêtre modale pour confirmer la suppression -->
+    <div id="delete-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeDeleteForm()">&times;</span>
         <h3>Confirmer la suppression</h3>
-        <p>Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
+            <p style="margin-bottom: 20px; color: #ddd;">Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
         <input type="hidden" id="delete-post-id">
-        <br>
-        <button onclick="confirmDelete()">🗑 Supprimer</button>
-        <button onclick="closeDeleteForm()">Annuler</button>
+            <div class="buttons-container">
+                <button class="delete-btn" onclick="confirmDelete()">🗑 Supprimer</button>
+                <button style="background-color: #555;" onclick="closeDeleteForm()">Annuler</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Fenêtre modale pour confirmer la suppression d’un commentaire -->
-    <div id="delete-comment-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+    <!-- Fenêtre modale pour confirmer la suppression d'un commentaire -->
+    <div id="delete-comment-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeDeleteCommentForm()">&times;</span>
         <h3>Confirmer la suppression</h3>
-        <p>Voulez-vous vraiment supprimer ce commentaire ? Cette action est irréversible.</p>
+            <p style="margin-bottom: 20px; color: #ddd;">Voulez-vous vraiment supprimer ce commentaire ? Cette action est irréversible.</p>
         <input type="hidden" id="delete-comment-id">
-        <br>
-        <button onclick="confirmDeleteComment()">🗑 Supprimer</button>
-        <button onclick="closeDeleteCommentForm()">Annuler</button>
+            <div class="buttons-container">
+                <button class="delete-btn" onclick="confirmDeleteComment()">🗑 Supprimer</button>
+                <button style="background-color: #555;" onclick="closeDeleteCommentForm()">Annuler</button>
+            </div>
+        </div>
     </div>
 
     <!-- Fenêtre modale pour modifier un commentaire -->
-    <div id="edit-comment-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border:1px solid #ccc;">
+    <div id="edit-comment-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditCommentForm()">&times;</span>
         <h3>Modifier le commentaire</h3>
-        <textarea id="edit-comment-content" rows="3" style="width:100%;"></textarea>
+            <textarea id="edit-comment-content" rows="4" placeholder="Contenu du commentaire..."></textarea>
         <input type="hidden" id="edit-comment-id">
-        <br>
+            <div class="buttons-container">
         <button onclick="submitEditComment()">Enregistrer</button>
-        <button onclick="closeEditCommentForm()">Annuler</button>
+                <button style="background-color: #555;" onclick="closeEditCommentForm()">Annuler</button>
+            </div>
+        </div>
     </div>
 
     <!-- Fenêtre modale pour créer un post -->
-    <div id="create-post-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-    background:#fff; padding:20px; border:1px solid #ccc; z-index:1000; width: 400px;">
+    <div id="create-post-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCreatePostForm()">&times;</span>
         <h3>Créer un post</h3>
         <form action="/user/create-post" method="POST" enctype="multipart/form-data">
-            <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
-            <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
-        
-            <!-- CASES À COCHER POUR LES CATÉGORIES -->
-            <label>Choisir les catégories :</label><br>
+                <textarea name="content" placeholder="Écrivez votre message..." rows="5"></textarea>
+                
+                <div>
+                    <label for="post-image">Ajouter une image :</label>
+                    <input type="file" name="image" id="post-image" accept=".jpg, .jpeg, .png, .gif">
+                </div>
+            
+                <div style="margin-bottom: 20px; margin-top: 15px;">
+                    <label>Choisir les catégories :</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; background-color: #333; padding: 10px; border-radius: 6px; margin-top: 8px;">
             {{range .Categories}}
-                <label>
-                    <input type="checkbox" name="categories" value="{{.ID}}">
-                    {{.Name}}
-                </label><br>
+                            <label style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <input type="checkbox" name="categories" value="{{.ID}}" style="margin-right: 8px; min-width: 16px; min-height: 16px;">
+                                <span style="display: inline-block; vertical-align: middle;">{{.Name}}</span>
+                            </label>
             {{end}}
+                    </div>
+                </div>
         
+                <div class="buttons-container">
             <button type="submit">Publier</button>
-            <button type="button" onclick="closeCreatePostForm()">Annuler</button>
+                    <button type="button" style="background-color: #555;" onclick="closeCreatePostForm()">Annuler</button>
+                </div>
         </form>
+        </div>
     </div>
 
+    <!-- Fenêtre modale pour signaler un post -->
+    <div id="report-post-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeReportForm()">&times;</span>
+            <h3>Signaler ce post</h3>
+            <textarea id="report-reason" rows="4" placeholder="Pourquoi signalez-vous ce post ? (optionnel)"></textarea>
+            <input type="hidden" id="report-post-id">
+            <div class="buttons-container">
+                <button onclick="submitReport()">Signaler</button>
+                <button style="background-color: #555;" onclick="closeReportForm()">Annuler</button>
+            </div>
+        </div>
+    </div>
     
-</body>
-</html>
+    <!-- Fenêtre modale pour signaler un commentaire -->
+    <div id="report-comment-form" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeReportCommentForm()">&times;</span>
+            <h3>Signaler ce commentaire</h3>
+            <textarea id="report-comment-reason" rows="4" placeholder="Pourquoi signalez-vous ce commentaire ? (optionnel)"></textarea>
+            <input type="hidden" id="report-comment-id">
+            <div class="buttons-container">
+                <button onclick="submitCommentReport()">Signaler</button>
+                <button style="background-color: #555;" onclick="closeReportCommentForm()">Annuler</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dropdown de notifications -->
+    <div id="notifDropdown" class="notif-dropdown" style="display:none;">
+        <h4>Notifications</h4>
+        <div>
+            <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
+            <button onclick="deleteAllNotifications()">🗑 Supprimer tout</button>
+        </div>
+        <ul id="notifList"></ul>
+    </div>
 
+    <!-- Conteneur pour les notifications -->
+    <div class="notification-container" id="notification-container"></div>
 
 <script>
+// Ouvrir le formulaire de création de post
+function openCreatePostForm() {
+    document.getElementById("create-post-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("create-post-form").style.opacity = "1";
+        document.querySelector("#create-post-form .modal-content").style.transform = "scale(1)";
+    }, 10);
+}
+
+function closeCreatePostForm() {
+    document.getElementById("create-post-form").style.opacity = "0";
+    document.querySelector("#create-post-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
+        document.getElementById("create-post-form").style.display = "none";
+    }, 300);
+}
+
+// Like / Dislike d'un post
 function likePost(postID, value) {
     fetch('/user/like', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: parseInt(postID, 10), value: value })
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ post_id: parseInt(postID), value: value })
     })
-    .then(response => response.json()) // Récupérer la réponse JSON
+    .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // Mettre à jour les valeurs sans recharger la page
-            document.getElementById(`likes-${postID}`).innerText = data.likes;
-            document.getElementById(`dislikes-${postID}`).innerText = data.dislikes;
-        } else {
-            alert("Erreur : " + data.message);
-        }
+        document.getElementById(`likes-${postID}`).innerText = data.likes || 0;
+        document.getElementById(`dislikes-${postID}`).innerText = data.dislikes || 0;
     })
-    .catch(error => console.error("Erreur lors du like/dislike :", error));
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
 }
 
-// Ouvre la fenêtre de confirmation de suppression
+// Ouvrir le formulaire de suppression
 function openDeleteForm(postID) {
     document.getElementById("delete-post-id").value = postID;
-    let modal = document.getElementById("delete-form");
-    modal.style.display = "block";
+    document.getElementById("delete-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("delete-form").style.opacity = "1";
+        document.querySelector("#delete-form .modal-content").style.transform = "scale(1)";
+    }, 10);
 }
 
-// Ferme la fenêtre modale de suppression   
 function closeDeleteForm() {
-    let modal = document.getElementById("delete-form");
-    modal.style.display = "none";
+    document.getElementById("delete-form").style.opacity = "0";
+    document.querySelector("#delete-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
+        document.getElementById("delete-form").style.display = "none";
+    }, 300);
 }
 
 // Confirme la suppression du post
@@ -243,8 +365,6 @@ function confirmDelete() {
 
 // Supprime le post
 function deletePost(postID) {
-    console.log("Suppression demandée pour le post ID :", postID);
-
     fetch('/user/delete-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -252,52 +372,40 @@ function deletePost(postID) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Réponse JSON du serveur :", data);
-
         if (data.success) {
-            console.log("Suppression réussie, tentative de suppression du post du DOM.");
-            
             let postElement = document.getElementById(`post-wrapper-${postID}`);
-            console.log("🔍 Élément HTML trouvé ?", postElement !== null);
-
             if (postElement) {
                 postElement.remove();
-                console.log("🗑 Post supprimé du DOM.");
-            } else {
-                console.warn("Impossible de supprimer, élément introuvable dans le DOM !");
             }
+            showNotification("Post supprimé avec succès", "success");
         } else {
-            console.error("Erreur reçue du serveur :", data.message);
-            alert("Erreur : " + (data.message || "Réponse inattendue"));
+            showNotification(data.message || "Erreur lors de la suppression du post", "error");
         }
     })
     .catch(error => {
         console.error("Erreur JS :", error);
-        alert("Une erreur est survenue lors de la suppression.");
+        showNotification("Erreur réseau lors de la suppression du post", "error");
     });
 }
-
-
-
-
-
-
-
 
 function editPost(postID) {
     let currentContent = document.getElementById(`content-${postID}`).innerText;
     document.getElementById("edit-content").value = currentContent;
     document.getElementById("edit-post-id").value = postID;
-
-    // Décocher la case "Supprimer l'image" à chaque ouverture
     document.getElementById("delete-image").checked = false;
-
-    document.getElementById("edit-form").style.display = "block";
+    document.getElementById("edit-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("edit-form").style.opacity = "1";
+        document.querySelector("#edit-form .modal-content").style.transform = "scale(1)";
+    }, 10);
 }
 
-
 function closeEditForm() {
+    document.getElementById("edit-form").style.opacity = "0";
+    document.querySelector("#edit-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
     document.getElementById("edit-form").style.display = "none";
+    }, 300);
 }
 
 function submitEdit() {
@@ -324,54 +432,49 @@ function submitEdit() {
             // Mise à jour du texte du post
             document.getElementById(`content-${postID}`).innerText = newContent;
 
-            // Récupération de l'élément image
-            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
-
+            // Gestion de l'image
             if (data.imageUpdated) {
+                let imgContainer = document.querySelector(`#post-${postID} .post-image`);
+                let imgElement = imgContainer ? imgContainer.querySelector('img') : null;
+                
             if (!imgElement) {
-                // Si l'image n'existe pas encore, on la crée
-                imgElement = document.createElement("img");
-                imgElement.style.cursor = "pointer";
-                imgElement.width = 200;
+                    // Créer le conteneur d'image s'il n'existe pas
+                    if (!imgContainer) {
+                        imgContainer = document.createElement('div');
+                        imgContainer.className = 'post-image';
+                        let contentElement = document.getElementById(`content-${postID}`);
+                        contentElement.parentNode.insertBefore(imgContainer, contentElement.nextSibling);
+                    }
+                    
+                    // Créer l'élément image
+                    imgElement = document.createElement('img');
                 imgElement.alt = "Image postée";
                 imgElement.onclick = function() { openModal(`/entry/image/${postID}`); };
-
-                let postDiv = document.getElementById(`content-${postID}`).parentNode;
+                    imgContainer.appendChild(imgElement);
+                }
                 
-                // Insérer l'image juste après le paragraphe du contenu
-                let contentElement = document.getElementById(`content-${postID}`);
-                postDiv.insertBefore(imgElement, contentElement.nextSibling);
-            }
-
-            // Met à jour l'image avec un timestamp unique
+                // Mettre à jour l'image avec un timestamp unique
             imgElement.src = `/entry/image/${postID}?t=${new Date().getTime()}`;
-            imgElement.style.display = "block";
             } 
+            
             if (data.imageDeleted) {
-            let imgElement = document.querySelector(`img[src^="/entry/image/${postID}"]`);
-
-            if (imgElement) {
-                imgElement.remove(); // Supprime l'image du DOM
+                let imgContainer = document.querySelector(`#post-${postID} .post-image`);
+                if (imgContainer) {
+                    imgContainer.remove();
+                }
             }
-
-            // Vérifie s'il y a le texte "image postée" et le supprime
-            let textPlaceholder = document.querySelector(`#content-${postID} + p`);
-            if (textPlaceholder && textPlaceholder.innerText.includes("image postée")) {
-                textPlaceholder.remove();
-            }
-        }
-
 
             closeEditForm();
+            showNotification("Post modifié avec succès", "success");
         } else {
-            alert("Erreur : " + data.message);
+            showNotification(data.message || "Erreur lors de la modification du post", "error");
         }
     })
-    .catch(error => console.error("Erreur lors de la modification :", error));
+    .catch(error => {
+        console.error("Erreur lors de la modification :", error);
+        showNotification("Erreur réseau lors de la modification du post", "error");
+    });
 }
-
-
-
 
 function openModal(imageSrc) {
     let modal = document.getElementById("imageModal");
@@ -396,17 +499,33 @@ function closeModal() {
     }, 300);
 }
 
+// Fonction modifiée pour ouvrir le modal de signalement au lieu du prompt
 function reportPost(postID) {
-    const reason = prompt("Pourquoi signalez-vous ce post ? (optionnel)");
-    if (reason === null) return;
+    document.getElementById("report-post-id").value = postID;
+    document.getElementById("report-reason").value = "";
+    document.getElementById("report-post-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("report-post-form").style.opacity = "1";
+        document.querySelector("#report-post-form .modal-content").style.transform = "scale(1)";
+    }, 10);
+}
+
+function closeReportForm() {
+    document.getElementById("report-post-form").style.opacity = "0";
+    document.querySelector("#report-post-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
+        document.getElementById("report-post-form").style.display = "none";
+    }, 300);
+}
+
+function submitReport() {
+    const postID = document.getElementById("report-post-id").value;
+    const reason = document.getElementById("report-reason").value.trim();
 
     const payload = {
-        post_id: Number(postID.toString().trim()),
-        reason: reason.trim()
+        post_id: Number(postID),
+        reason: reason
     };
-
-    console.log("🔍 ReportPost → typeof postID:", typeof postID, "val:", postID);
-
 
     fetch("/user/report", {
         method: "POST",
@@ -416,15 +535,14 @@ function reportPost(postID) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert("Le post a été signalé.");
+            closeReportForm();
+            showNotification("Le post a été signalé avec succès", "success");
         } else {
-            alert("Une erreur est survenue.");
+            showNotification("Une erreur est survenue lors du signalement", "error");
         }
     })
-    .catch(() => alert("Erreur réseau."));
+    .catch(() => showNotification("Erreur réseau", "error"));
 }
-
-
 
 function toggleComments(postID) {
     const section = document.getElementById("comments-" + postID);
@@ -439,7 +557,7 @@ function submitComment(postID) {
     const textarea = document.getElementById("comment-content-" + postID);
     const content = textarea.value.trim();
     if (!content) {
-        alert("Veuillez écrire un commentaire.");
+        showNotification("Veuillez écrire un commentaire", "warning");
         return;
     }
 
@@ -449,236 +567,325 @@ function submitComment(postID) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            post_id: Number(postID),
+            post_id: parseInt(postID),
             content: content
         })
     })
-    .then(res => res.json())
+    .then(response => response.json())
     .then(data => {
-    if (data.success && data.comment) {
-        const commentSection = document.getElementById("comments-" + postID);
-        const textarea = document.getElementById("comment-content-" + postID);
-
-        const div = document.createElement("div");
-        div.id = `comment-${data.comment.id}`;
-        div.style.border = "1px dashed #ccc";
-        div.style.marginBottom = "8px";
-        div.style.padding = "5px";
-
-        div.innerHTML = `
-        <p><strong><a href="/user/profile/${data.comment.username}">${data.comment.username}</a></strong> : ${data.comment.content}</p>
-        <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
-        <p>
-            👍 <span id="comment-like-${data.comment.id}">0</span>
-            | 👎 <span id="comment-dislike-${data.comment.id}">0</span>
-        </p>
-        <button onclick="likeComment('${data.comment.id}', 1)">👍 Like</button>
-        <button onclick="likeComment('${data.comment.id}', -1)">👎 Dislike</button>
-        <button onclick="reportComment('${data.comment.id}')">🚩 Signaler</button>
-        ${data.comment.canEdit ? `<button onclick="editComment('${data.comment.id}', '${data.comment.content.replace(/'/g, "\\'")}')">✏ Modifier</button>` : ""}
-        ${data.comment.canDelete ? `<button onclick="deleteComment('${data.comment.id}')">🗑 Supprimer</button>` : ""}
-    `;
-
-        commentSection.insertBefore(div, textarea);
-        textarea.value = "";
+        if (data.success) {
+            // Recharger la page pour voir le nouveau commentaire
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
     } else {
-        alert("Erreur : " + (data.message || "Ajout impossible"));
+            showNotification(data.message || "Erreur lors de l'ajout du commentaire", "error");
     }
 })
-    .catch(() => {
-        alert("Erreur réseau ou serveur");
+    .catch(error => {
+        console.error("Erreur:", error);
+        showNotification("Erreur réseau lors de l'ajout du commentaire", "error");
     });
 }
-
-
 
 function likeComment(commentID, value) {
-    fetch("/user/like-comment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            comment_id: parseInt(commentID, 10), 
-            value: value
-        })
+    fetch('/user/like-comment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ comment_id: parseInt(commentID), value: value })
     })
-    .then(res => res.json())
+    .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            document.getElementById("comment-like-" + commentID).innerText = data.likes;
-            document.getElementById("comment-dislike-" + commentID).innerText = data.dislikes;
-        } else {
-            alert("Erreur lors du like/dislike du commentaire.");
-        }
+        document.getElementById(`comment-like-${commentID}`).innerText = data.likes || 0;
+        document.getElementById(`comment-dislike-${commentID}`).innerText = data.dislikes || 0;
     })
-    .catch(() => alert("Erreur réseau"));
-}
-
-
-
-function deleteComment(commentID) {
-    document.getElementById("delete-comment-id").value = commentID;
-    document.getElementById("delete-comment-form").style.display = "block";
-}
-
-function closeDeleteCommentForm() {
-    document.getElementById("delete-comment-form").style.display = "none";
-}
-
-function confirmDeleteComment() {
-    const commentID = document.getElementById("delete-comment-id").value;
-
-    fetch("/user/delete-comment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment_id: parseInt(commentID, 10) })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const div = document.getElementById("comment-" + commentID);
-            if (div) div.remove();
-        } else {
-            alert("Erreur lors de la suppression du commentaire.");
-        }
-    })
-    .catch(() => alert("Erreur réseau"))
-    .finally(() => {
-        closeDeleteCommentForm();
+    .catch(error => {
+        console.error('Erreur:', error);
     });
 }
 
+function reportComment(commentID) {
+    document.getElementById("report-comment-id").value = commentID;
+    document.getElementById("report-comment-reason").value = "";
+    document.getElementById("report-comment-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("report-comment-form").style.opacity = "1";
+        document.querySelector("#report-comment-form .modal-content").style.transform = "scale(1)";
+    }, 10);
+}
 
+function closeReportCommentForm() {
+    document.getElementById("report-comment-form").style.opacity = "0";
+    document.querySelector("#report-comment-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
+        document.getElementById("report-comment-form").style.display = "none";
+    }, 300);
+}
 
+function submitCommentReport() {
+    const commentID = document.getElementById("report-comment-id").value;
+    const reason = document.getElementById("report-comment-reason").value.trim();
+    
+    fetch("/user/report-comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment_id: Number(commentID), reason: reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeReportCommentForm();
+            showNotification("Le commentaire a été signalé avec succès", "success");
+        } else {
+            showNotification("Une erreur est survenue lors du signalement", "error");
+        }
+    })
+    .catch(() => showNotification("Erreur réseau", "error"));
+}
 
 function editComment(commentID, content) {
-    document.getElementById("edit-comment-id").value = commentID;
     document.getElementById("edit-comment-content").value = content;
-    document.getElementById("edit-comment-form").style.display = "block";
+    document.getElementById("edit-comment-id").value = commentID;
+    document.getElementById("edit-comment-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("edit-comment-form").style.opacity = "1";
+        document.querySelector("#edit-comment-form .modal-content").style.transform = "scale(1)";
+    }, 10);
 }
 
 function closeEditCommentForm() {
+    document.getElementById("edit-comment-form").style.opacity = "0";
+    document.querySelector("#edit-comment-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
     document.getElementById("edit-comment-form").style.display = "none";
+    }, 300);
 }
 
 function submitEditComment() {
     const commentID = document.getElementById("edit-comment-id").value;
-    const newContent = document.getElementById("edit-comment-content").value.trim();
+    const content = document.getElementById("edit-comment-content").value.trim();
 
-    if (!newContent) {
-        alert("Le contenu ne peut pas être vide.");
+    if (!content) {
+        showNotification("Le commentaire ne peut pas être vide", "warning");
         return;
     }
 
     fetch("/user/edit-comment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment_id: parseInt(commentID), content: newContent })
+        body: JSON.stringify({ comment_id: Number(commentID), content: content })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            const commentDiv = document.querySelector(`#comment-${commentID} p strong`).nextSibling;
-            if (commentDiv) commentDiv.nodeValue = " : " + newContent;
+            // Mise à jour du contenu du commentaire dans le DOM
+            const commentContentElement = document.querySelector(`#comment-${commentID} .comment-content`);
+            if (commentContentElement) {
+                commentContentElement.textContent = content;
+            }
             closeEditCommentForm();
+            showNotification("Commentaire modifié avec succès", "success");
         } else {
-            alert("Erreur : " + data.message);
+            showNotification(data.message || "Erreur lors de la modification du commentaire", "error");
         }
     })
-    .catch(() => alert("Erreur réseau"));
+    .catch(() => {
+        showNotification("Erreur réseau lors de la modification du commentaire", "error");
+    });
 }
 
+function deleteComment(commentID) {
+    document.getElementById("delete-comment-id").value = commentID;
+    document.getElementById("delete-comment-form").style.display = "flex";
+    setTimeout(() => {
+        document.getElementById("delete-comment-form").style.opacity = "1";
+        document.querySelector("#delete-comment-form .modal-content").style.transform = "scale(1)";
+    }, 10);
+}
 
+function closeDeleteCommentForm() {
+    document.getElementById("delete-comment-form").style.opacity = "0";
+    document.querySelector("#delete-comment-form .modal-content").style.transform = "scale(0.8)";
+    setTimeout(() => {
+        document.getElementById("delete-comment-form").style.display = "none";
+    }, 300);
+}
 
-function reportComment(commentID) {
-    const reason = prompt("Pourquoi signalez-vous ce commentaire ? (optionnel)");
-    if (reason === null) return;
-
-    const payload = {
-        comment_id: parseInt(commentID),
-        reason: reason.trim()
-    };
-
-    fetch("/user/report-comment", {
+function confirmDeleteComment() {
+    const commentID = document.getElementById("delete-comment-id").value;
+    
+    fetch("/user/delete-comment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ comment_id: parseInt(commentID) })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert("Le commentaire a été signalé.");
+            // Supprimer le commentaire du DOM
+            const commentElement = document.getElementById(`comment-${commentID}`);
+            if (commentElement) {
+                commentElement.remove();
+            }
+            closeDeleteCommentForm();
+            showNotification("Commentaire supprimé avec succès", "success");
         } else {
-            alert("Erreur : " + data.message);
+            showNotification(data.message || "Erreur lors de la suppression du commentaire", "error");
         }
     })
-    .catch(() => alert("Erreur réseau"));
+    .catch(() => {
+        showNotification("Erreur réseau lors de la suppression du commentaire", "error");
+    });
 }
 
-
+// Notifications
 function toggleNotifMenu() {
-    const menu = document.getElementById("notifDropdown");
-    menu.style.display = menu.style.display === "none" ? "block" : "none";
-
-    if (menu.style.display === "block") {
-        loadNotifications();
+    const dropdown = document.getElementById("notifDropdown");
+    if (dropdown.style.display === "none") {
+        fetchNotifications();
+        dropdown.style.display = "block";
+    } else {
+        dropdown.style.display = "none";
     }
 }
 
-function loadNotifications() {
+function fetchNotifications() {
     fetch("/user/notifications")
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Erreur HTTP: ${res.status}`);
+            }
+            return res.json();
+        })
         .then(data => {
             const list = document.getElementById("notifList");
             list.innerHTML = "";
 
-            data.forEach(n => {
+            if (!Array.isArray(data)) {
+                console.error("Format de données inattendu:", data);
+                list.innerHTML = "<li>Format de données inattendu</li>";
+                return;
+            }
+            
+            if (data.length === 0) {
                 const li = document.createElement("li");
-                li.className = n.seen ? "" : "unseen";
+                li.textContent = "Aucune notification.";
+                list.appendChild(li);
+                document.getElementById("notifCount").style.display = "none";
+                return;
+            }
+            
+            data.forEach(notif => {
+                const li = document.createElement("li");
+                if (!notif.seen) {
+                    li.classList.add("unseen");
+                }
+                
+                // Utiliser directement le message fourni par le serveur
+                const message = notif.message || "Nouvelle notification";
+                
+                // Formater la date ou utiliser une valeur par défaut
+                let dateStr = "Date inconnue";
+                try {
+                    if (notif.created_at) {
+                        dateStr = notif.created_at;
+                    }
+                } catch (e) {
+                    console.error("Erreur de formatage de date", e);
+                }
+                
                 li.innerHTML = `
-                    <p>${n.message}</p>
-                    <small>${n.created_at}</small>
+                    <div>${message}</div>
+                    <small>${dateStr}</small>
                 `;
+                
                 list.appendChild(li);
             });
+            
+            // Mettre à jour le compteur de notifications non vues
+            const unseenCount = data.filter(notif => !notif.seen).length;
+            const countElement = document.getElementById("notifCount");
+            if (unseenCount > 0) {
+                countElement.textContent = unseenCount;
+                countElement.style.display = "inline";
+            } else {
+                countElement.style.display = "none";
+            }
+        })
+        .catch(error => {
+            console.error("Erreur de chargement des notifications:", error);
+            const list = document.getElementById("notifList");
+            list.innerHTML = "<li>Erreur lors du chargement des notifications.</li>";
+            
+            // S'assurer que le compteur est masqué en cas d'erreur
+            const countElement = document.getElementById("notifCount");
+            if (countElement) {
+                countElement.style.display = "none";
+            }
         });
 }
 
 function markNotificationsRead() {
     fetch("/user/notifications/mark-read", {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
     })
     .then(() => {
-        loadNotifications();
+        // Enlever la classe "unseen" de tous les éléments
+        document.querySelectorAll("#notifList li").forEach(li => {
+            li.classList.remove("unseen");
+        });
     });
 }
 
 function deleteAllNotifications() {
-    if (!confirm("Supprimer toutes les notifications ?")) return;
-
     fetch("/user/notifications/delete-all", {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            loadNotifications();
-        } else {
-            alert("Erreur : " + data.message);
-        }
-    })
-    .catch(() => alert("Erreur réseau lors de la suppression."));
+    .then(() => {
+        document.getElementById("notifList").innerHTML = "<li>Aucune notification.</li>";
+    });
 }
 
-// Modal pour créer un post
-function openCreatePostForm() {
-    const modal = document.getElementById("create-post-form");
-    if (modal) modal.style.display = "block";
+// Fonction de gestion des notifications
+function showNotification(message, type = 'success', duration = 5000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    const id = 'notification-' + Date.now();
+    notification.id = id;
+    notification.className = `notification ${type}`;
+
+    notification.innerHTML = `
+        <div class="notification-content">${message}</div>
+        <button class="notification-close" onclick="removeNotification('${id}')">&times;</button>
+        <div class="notification-progress" style="animation: progressBar ${duration}ms linear forwards;"></div>
+    `;
+
+    container.appendChild(notification);
+
+    // Supprimer automatiquement après la durée spécifiée
+    setTimeout(() => {
+        removeNotification(id);
+    }, duration);
 }
 
-function closeCreatePostForm() {
-    const modal = document.getElementById("create-post-form");
-    if (modal) modal.style.display = "none";
+function removeNotification(id) {
+    const notification = document.getElementById(id);
+    if (!notification) return;
+    
+    notification.style.animation = 'slideOut 0.3s ease-out forwards';
+    setTimeout(() => {
+        notification.remove();
+    }, 300);
 }
 
-
+// Pour compatibilité, mapper l'ancienne fonction showToast vers la nouvelle
+function showToast(message, type = "info") {
+    showNotification(message, type);
+}
 </script>
+</body>
+</html>

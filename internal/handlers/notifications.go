@@ -5,7 +5,6 @@ import (
 	"Forum/internal/security"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +26,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	for _, n := range notifs {
 		result = append(result, JSONNotif{
 			Message:   n.Message,
-			CreatedAt: time.Now().Format("02/01/2006 15:04"),
+			CreatedAt: n.CreatedAt.Format("02/01/2006 15:04"),
 			Seen:      n.Seen,
 		})
 	}

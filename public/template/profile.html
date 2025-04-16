@@ -4,92 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/profile.css">
-    <title>Profil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
+    <title>Profil - {{.User.Username}}</title>
 </head>
 <body>
-    <h2>Profil de {{.User.Username}}</h2>
-    <p><strong>Nom d'utilisateur :</strong> <span id="display-username">{{.User.Username}}</span></p>
-    {{if .IsOwner}}
-    <p><strong>Email :</strong> <span id="display-email">{{.User.Email}}</span></p>
-    {{end}}
-    <p><strong>Rôle :</strong> {{.User.Role}}</p>
+    <div class="profile-container">
+        <!-- Logo en haut à gauche -->
+        <div class="site-logo">
+            <a href="/entry/home">
+                <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
+            </a>
+        </div>
+        
+        <div class="profile-header">
+            <h2>Profil de {{.User.Username}}</h2>
+        </div>
 
-    {{if .IsOwner}}
-    <h3>Modifier mon profil</h3>
-    <form id="profile-form">
-        <label>Nom d'utilisateur :</label>
-        <input type="text" id="username" value="{{.User.Username}}" required><br>
-    
-        <label>Email :</label>
-        <input type="email" id="email" value="{{.User.Email}}" required><br>
-    
-        <label>Ancien mot de passe :</label>
-        <input type="password" id="old-password"><br>
-    
-        <label>Nouveau mot de passe :</label>
-        <input type="password" id="new-password"><br>
-
-        <label>
-            <input type="checkbox" id="is-public" {{if .User.IsPublic}}checked{{end}}>
-            Rendre mon compte public
-        </label><br>    
-    
-        <button type="submit">Enregistrer</button>
-    </form>
-    
-    <p id="success-message" style="color:green; display:none;">Mise à jour réussie !</p>
-    <p id="error-message" style="color:red; display:none;"></p>
-    
-    <a href="/auth/logout">Se déconnecter</a>
-    
-    <h3>Warn</h3>
-    <button id="openWarnBtn">
-        Casier (<span id="warnCount">{{len .User.Warns}}</span>)
-    </button>
-    
-    <!-- Modale du casier -->
-    <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:2px solid #333; max-width:500px; z-index:999;">
-        <h3>Mes avertissements</h3>
-        <ul id="warnList" style="max-height:200px; overflow:auto;">
-            {{range .User.Warns}}
-            <li style="margin-bottom: 10px; border-bottom: 1px solid #555; padding: 5px;">
-                <strong>Modérateur :</strong> {{.Issuer}}<br>
-                <strong>Raison :</strong> {{.Reason}}<br>
-                <strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}
-            </li>
+        <div class="profile-info">
+            <p><strong>Nom d'utilisateur :</strong> <span id="display-username">{{.User.Username}}</span></p>
+            {{if .IsOwner}}
+            <p><strong>Email :</strong> <span id="display-email">{{.User.Email}}</span></p>
             {{end}}
-        </ul>
-        <button onclick="closeWarnModal()">Fermer</button>
-    </div>
-    {{end}}
+            <p><strong>Rôle :</strong> {{.User.Role}}</p>
+            {{if not (or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator")))}}
+            <p><strong>Statut :</strong> Ce profil est privé.</p>
+            {{end}}
+        </div>
 
-    {{if or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator"))}}
-        <h3>Activité de l'utilisateur</h3>
-        <ul>
-        {{range .Activities}}
-            <li>
-                {{if eq .Type "post"}}📝 Nouveau post : {{.Content}}
-                {{else if eq .Type "comment"}}💬 Commentaire : {{.Content}} (sur le post : "{{.Target}}")
-                {{else if eq .Type "like_post"}}👍 A liké un post : "{{.Target}}"
-                {{else if eq .Type "dislike_post"}}👎 A disliké un post : "{{.Target}}"
-                {{else if eq .Type "like_comment"}}👍 A liké un commentaire : "{{.Target}}"
-                {{else if eq .Type "dislike_comment"}}👎 A disliké un commentaire : "{{.Target}}"
-                {{end}}<br>
-                <small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small>
-            </li>
+        {{if .IsOwner}}
+        <div class="edit-section">
+            <h3>Modifier mon profil</h3>
+            <form id="profile-form">
+                <div>
+                    <label for="username">Nom d'utilisateur :</label>
+                    <input type="text" id="username" value="{{.User.Username}}" required>
+                </div>
+                
+                <div>
+                    <label for="email">Email :</label>
+                    <input type="email" id="email" value="{{.User.Email}}" required>
+                </div>
+                
+                <div>
+                    <label for="old-password">Ancien mot de passe :</label>
+                    <input type="password" id="old-password">
+                </div>
+                
+                <div>
+                    <label for="new-password">Nouveau mot de passe :</label>
+                    <input type="password" id="new-password">
+                </div>
+
+                <div>
+                    <label for="is-public">
+                        <input type="checkbox" id="is-public" {{if .User.IsPublic}}checked{{end}}>
+                        Rendre mon compte public
+                    </label>
+                </div>
+                
+                <button type="submit">Enregistrer les modifications</button>
+            </form>
+            
+            <p id="success-message" style="display:none;">Mise à jour réussie !</p>
+            <p id="error-message" style="display:none;"></p>
+            
+            <a href="/auth/logout" class="logout-btn">Se déconnecter</a>
+            
+            <button id="openWarnBtn">
+                Voir mes avertissements (<span id="warnCount">{{len .User.Warns}}</span>)
+            </button>
+            
+            <!-- Modale du casier -->
+            <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); z-index:999;">
+                <h3>Mes avertissements</h3>
+                <ul id="warnList">
+                    {{range .User.Warns}}
+                    <li>
+                        <div><strong>Modérateur :</strong> {{.Issuer}}</div>
+                        <div><strong>Raison :</strong> {{.Reason}}</div>
+                        <div><strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}</div>
+                    </li>
+                    {{end}}
+                </ul>
+                <button onclick="closeWarnModal()">Fermer</button>
+            </div>
+        </div>
         {{end}}
-        </ul>
-    {{else}}
-        <p>Ce profil est privé.</p>
-    {{end}}
 
-    
+        {{if or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator"))}}
+        <div class="activity-section">
+            <h3>Activité de l'utilisateur</h3>
+            <ul class="activity-list">
+            {{range .Activities}}
+                <li>
+                    {{if eq .Type "post"}}📝 Nouveau post : {{.Content}}
+                    {{else if eq .Type "comment"}}💬 Commentaire : {{.Content}} (sur le post : "{{.Target}}")
+                    {{else if eq .Type "like_post"}}👍 A liké un post : "{{.Target}}"
+                    {{else if eq .Type "dislike_post"}}👎 A disliké un post : "{{.Target}}"
+                    {{else if eq .Type "like_comment"}}👍 A liké un commentaire : "{{.Target}}"
+                    {{else if eq .Type "dislike_comment"}}👎 A disliké un commentaire : "{{.Target}}"
+                    {{end}}
+                    <small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small>
+                </li>
+            {{end}}
+            </ul>
+        </div>
+        {{end}}
+    </div>
 </body>
 </html>
 
 {{if .IsOwner}}
 <script>
-    
     document.getElementById("profile-form").addEventListener("submit", function(event) {
         event.preventDefault();
         
@@ -137,7 +164,6 @@
         });
     });
 
-
     // Ouverture de la modale du casier
     document.getElementById("openWarnBtn").addEventListener("click", function () {
         document.getElementById("warnModal").style.display = "block";
@@ -147,7 +173,5 @@
     function closeWarnModal() {
         document.getElementById("warnModal").style.display = "none";
     }
-
-           
 </script>
 {{end}}
