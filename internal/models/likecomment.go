@@ -1,6 +1,9 @@
 package models
 
-import "Forum/internal/database"
+import (
+	"Forum/internal/database"
+	"time"
+)
 
 func ToggleCommentLike(userID string, commentID int, value int) (added bool, wasLike bool, err error) {
 	var existingValue int
@@ -21,10 +24,13 @@ func ToggleCommentLike(userID string, commentID int, value int) (added bool, was
 	}
 
 	// Si aucune ligne existante, insérer une nouvelle
-	_, err = database.DB.Exec("INSERT INTO comment_likes (user_id, comment_id, value) VALUES (?, ?, ?)", userID, commentID, value)
+	_, err = database.DB.Exec(`
+	INSERT INTO comment_likes (user_id, comment_id, value, created_at)
+	VALUES (?, ?, ?, ?)`,
+		userID, commentID, value, time.Now(),
+	)
 	return true, value == 1, err
 }
-
 
 // Dans models/comment.go
 func GetCommentLikes(commentID int) (int, int, error) {

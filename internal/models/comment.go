@@ -60,14 +60,11 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	return comments, nil
 }
 
-func InsertComment(postID int, userID, content string) (int64, time.Time, error) {
-	loc, _ := time.LoadLocation("Europe/Paris")
-	createdAt := time.Now().In(loc)
-
+func CreateComment(postID int, userID, content string) (int64, time.Time, error) {
 	result, err := database.DB.Exec(`
 		INSERT INTO comments (post_id, author_id, content, created_at)
 		VALUES (?, ?, ?, ?)`,
-		postID, userID, content, createdAt)
+		postID, userID, content, time.Now())
 	if err != nil {
 		return 0, time.Time{}, err
 	}
@@ -77,7 +74,7 @@ func InsertComment(postID int, userID, content string) (int64, time.Time, error)
 		return 0, time.Time{}, err
 	}
 
-	return lastID, createdAt, nil
+	return lastID, time.Now(), nil
 }
 
 func DeleteComment(commentID int) error {

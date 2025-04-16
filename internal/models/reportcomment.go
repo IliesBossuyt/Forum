@@ -6,14 +6,14 @@ import (
 )
 
 type CommentReport struct {
-	ID                  int
-	CommentID           int
-	Reporter            string
-	Reason              string
-	CreatedAt           time.Time
-	CommentText         string
-	CommentAuthor       string
-	CommentAuthorID     string
+	ID              int
+	CommentID       int
+	Reporter        string
+	Reason          string
+	CreatedAt       time.Time
+	CommentText     string
+	CommentAuthor   string
+	CommentAuthorID string
 }
 
 func GetAllCommentReports() ([]CommentReport, error) {
@@ -45,9 +45,9 @@ func GetAllCommentReports() ([]CommentReport, error) {
 
 func CreateCommentReport(commentID int, reporterID, reason string) error {
 	_, err := database.DB.Exec(`
-		INSERT INTO comment_reports (comment_id, reporter_id, reason)
-		VALUES (?, ?, ?)`,
-		commentID, reporterID, reason,
+		INSERT INTO comment_reports (comment_id, reporter_id, reason, created_at)
+		VALUES (?, ?, ?, ?)`,
+		commentID, reporterID, reason, time.Now(),
 	)
 	return err
 }

@@ -2,6 +2,7 @@ package models
 
 import (
 	"Forum/internal/database"
+	"time"
 )
 
 type Post struct {
@@ -47,8 +48,11 @@ func GetAllPosts() ([]Post, error) {
 	return posts, nil
 }
 
-func InsertPost(userID, content string, image []byte) error {
-	_, err := database.DB.Exec("INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)", userID, content, image)
+func CreatePost(userID, content string, image []byte) error {
+	_, err := database.DB.Exec(
+		"INSERT INTO posts (user_id, content, image, created_at) VALUES (?, ?, ?, ?)",
+		userID, content, image, time.Now(),
+	)
 	return err
 }
 

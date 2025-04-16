@@ -18,8 +18,10 @@ type Report struct {
 }
 
 func CreateReport(postID int, reporterID string, reason string) error {
-	_, err := database.DB.Exec(`INSERT INTO reports (post_id, reporter_id, reason) VALUES (?, ?, ?)`,
-		postID, reporterID, reason,
+	_, err := database.DB.Exec(`
+		INSERT INTO reports (post_id, reporter_id, reason, created_at)
+		VALUES (?, ?, ?, ?)`,
+		postID, reporterID, reason, time.Now(),
 	)
 	return err
 }

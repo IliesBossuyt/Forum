@@ -63,7 +63,7 @@
     </div>
     {{end}}
 
-    {{if or .User.IsPublic .IsOwner}}
+    {{if or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator"))}}
         <h3>Activité de l'utilisateur</h3>
         <ul>
         {{range .Activities}}

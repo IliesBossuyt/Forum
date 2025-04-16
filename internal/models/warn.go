@@ -16,8 +16,8 @@ type Warn struct {
 
 func AddWarn(userID string, issuedBy string, reason string) error {
 	_, err := database.DB.Exec(`
-        INSERT INTO warns (user_id, issued_by, reason)
-        VALUES (?, ?, ?)`, userID, issuedBy, reason)
+        INSERT INTO warns (user_id, issued_by, reason, created_at)
+        VALUES (?, ?, ?, ?)`, userID, issuedBy, reason, time.Now())
 	return err
 }
 

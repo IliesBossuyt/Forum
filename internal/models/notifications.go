@@ -19,13 +19,10 @@ type Notification struct {
 }
 
 func CreateNotification(n Notification) error {
-	loc, _ := time.LoadLocation("Europe/Paris")
-	createdAt := time.Now().In(loc)
-
 	_, err := database.DB.Exec(`
         INSERT INTO notifications (recipient_id, sender_id, type, post_id, comment_id, message, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		n.RecipientID, n.SenderID, n.Type, n.PostID, n.CommentID, n.Message, createdAt)
+		n.RecipientID, n.SenderID, n.Type, n.PostID, n.CommentID, n.Message, time.Now())
 	return err
 }
 

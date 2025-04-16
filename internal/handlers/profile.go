@@ -29,6 +29,12 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		currentUserID = ctxUserID.(string)
 	}
 
+	role := ""
+	if r.Context().Value(security.ContextRoleKey) != nil {
+		role = r.Context().Value(security.ContextRoleKey).(string)
+	}
+
+
 	isOwner := currentUserID == user.ID
 
 	var activities []models.Activity
@@ -41,7 +47,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if user.IsPublic || isOwner {
+		if user.IsPublic || isOwner || role == "admin" || role == "moderator" {
 			activities, err = models.GetUserActivity(user.ID)
 			if err != nil {
 				fmt.Println("Erreur de chargement des activités", err)
@@ -56,13 +62,15 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tmpl.Execute(w, struct {
-			User       *models.User
-			IsOwner    bool
-			Activities []models.Activity
+			User        *models.User
+			IsOwner     bool
+			Activities  []models.Activity
+			CurrentRole string
 		}{
-			User:       user,
-			IsOwner:    isOwner,
-			Activities: activities,
+			User:        user,
+			IsOwner:     isOwner,
+			Activities:  activities,
+			CurrentRole: role,
 		})
 		return
 	}

@@ -27,7 +27,7 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insertion et récupération de l'ID
-	commentID, createdAt, err := models.InsertComment(input.PostID, userID, input.Content)
+	commentID, createdAt, err := models.CreateComment(input.PostID, userID, input.Content)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du commentaire", http.StatusInternalServerError)
 		return

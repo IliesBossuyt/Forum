@@ -82,7 +82,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insérer le post dans la base de données
-	err = models.InsertPost(userID, content, imageData)
+	err = models.CreatePost(userID, content, imageData)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du post", http.StatusInternalServerError)
 		return

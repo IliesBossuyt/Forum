@@ -2,6 +2,7 @@ package models
 
 import (
 	"Forum/internal/database"
+	"time"
 )
 
 // Ajouter ou modifier un like/dislike sur les posts
@@ -24,7 +25,10 @@ func ToggleLike(userID string, postID int, value int) (added bool, wasLike bool,
 	}
 
 	// Premier vote
-	_, err = database.DB.Exec("INSERT INTO likes (user_id, post_id, value) VALUES (?, ?, ?)", userID, postID, value)
+	_, err = database.DB.Exec(
+		"INSERT INTO likes (user_id, post_id, value, created_at) VALUES (?, ?, ?, ?)",
+		userID, postID, value, time.Now(),
+	)
 	return true, value == 1, err
 }
 
