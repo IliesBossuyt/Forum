@@ -13,6 +13,13 @@ import (
 func Home(w http.ResponseWriter, r *http.Request) {
 	// Récupérer userID et rôle depuis le middleware
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
+	var username string
+	if userID != "" {
+		user, err := models.GetUserByID(userID)
+		if err == nil && user != nil {
+			username = user.Username
+		}
+	}	
 	role, _ := r.Context().Value(security.ContextRoleKey).(string)
 
 	// Récupération des catégories pour l'affichage
@@ -65,11 +72,13 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		Role       string
 		Posts      []models.Post
 		Categories []models.Category
+		Username string
 	}{
 		UserID:     userID,
 		Role:       role,
 		Posts:      posts,
 		Categories: categories,
+		Username:  username,
 	}
 
 	// Chargement du template HTML

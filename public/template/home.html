@@ -9,6 +9,33 @@
 <body>
     <h2>Bienvenue sur le Forum</h2>
 
+    {{if eq .UserID ""}}
+        <div style="margin-bottom: 20px;">
+            <a href="/auth/login"><button>🔑 Se connecter</button></a>
+            <a href="/auth/register"><button>📝 Créer un compte</button></a>
+        </div>
+    {{end}}
+
+    <div style="margin-bottom: 20px;">
+        {{if ne .Username ""}}
+            <a href="/user/profile/{{.Username}}"><button>👤 Mon profil</button></a>
+        {{end}}
+        {{if or (eq .Role "admin") (eq .Role "moderator")}}
+            <a href="/admin/dashboard"><button>📊 Dashboard</button></a>
+        {{end}}
+    </div>
+
+    <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications</button>
+    <div id="notifDropdown" class="notif-dropdown" style="display:none;">
+        <h4>Notifications</h4>
+        <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
+        <button onclick="deleteAllNotifications()">🗑 Supprimer toutes les notifications</button>
+        <ul id="notifList"></ul>
+    </div>    
+
+    <button onclick="openCreatePostForm()">📝 Créer un post</button>
+
+
     <form method="GET" action="/entry/home">
         <label for="category">Filtrer par catégorie :</label>
         <select name="category" id="category">
@@ -19,35 +46,10 @@
         </select>
         <button type="submit">Filtrer</button>
     </form>
-    
-
-    <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications</button>
-    <div id="notifDropdown" class="notif-dropdown" style="display:none;">
-        <h4>Notifications</h4>
-        <button onclick="markNotificationsRead()">Tout marquer comme lu</button>
-        <button onclick="deleteAllNotifications()">🗑 Supprimer toutes les notifications</button>
-        <ul id="notifList"></ul>
-    </div>    
-
-    <form action="/user/create-post" method="POST" enctype="multipart/form-data">
-        <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
-        <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
-    
-        <!-- CASES À COCHER POUR LES CATÉGORIES -->
-        <label>Choisir les catégories :</label><br>
-        {{range .Categories}}
-            <label>
-                <input type="checkbox" name="categories" value="{{.ID}}">
-                {{.Name}}
-            </label><br>
-        {{end}}
-    
-        <button type="submit">Publier</button>
-    </form>
-    
 
     <h3>Publications récentes</h3>
     {{range .Posts}}
+    <div id="post-wrapper-{{.ID}}">
         <div>
             <strong>Catégories :</strong>
             {{range .Categories}}
@@ -56,7 +58,7 @@
         </div>
     
         <div id="post-{{.ID}}" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
-            <p><strong>Posté par :</strong> {{.Username}}</p>
+            <p><strong>Posté par :</strong> <a href="/user/profile/{{.Username}}">{{.Username}}</a></p>
             <p id="content-{{.ID}}">{{.Content}}</p>
             {{if .Image}}
                 <img src="/entry/image/{{.ID}}" alt="Image postée" width="200" style="cursor: pointer;" onclick="openModal('/entry/image/{{.ID}}')">
@@ -88,7 +90,7 @@
                 {{if .Comments}}
                     {{range .Comments}}
                         <div id="comment-{{.ID}}" style="border: 1px dashed #ccc; margin-bottom: 8px; padding: 5px;">
-                            <p><strong>{{.Username}}</strong> : {{.Content}}</p>
+                            <p><strong><a href="/user/profile/{{.Username}}">{{.Username}}</a></strong> : {{.Content}}</p>
                             <small style="color: #aaa;">Posté le {{.CreatedAt}}</small><br>                            
                             <p>
                                 👍 <span id="comment-like-{{.ID}}">{{.Likes}}</span>
@@ -115,6 +117,7 @@
                 <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
             </div>
         </div>
+    </div>
     {{end}}
 
 
@@ -167,6 +170,28 @@
         <br>
         <button onclick="submitEditComment()">Enregistrer</button>
         <button onclick="closeEditCommentForm()">Annuler</button>
+    </div>
+
+    <!-- Fenêtre modale pour créer un post -->
+    <div id="create-post-form" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+    background:#fff; padding:20px; border:1px solid #ccc; z-index:1000; width: 400px;">
+        <h3>Créer un post</h3>
+        <form action="/user/create-post" method="POST" enctype="multipart/form-data">
+            <textarea name="content" placeholder="Écrivez votre message..."></textarea><br>
+            <input type="file" name="image" accept=".jpg, .jpeg, .png, .gif"><br>
+        
+            <!-- CASES À COCHER POUR LES CATÉGORIES -->
+            <label>Choisir les catégories :</label><br>
+            {{range .Categories}}
+                <label>
+                    <input type="checkbox" name="categories" value="{{.ID}}">
+                    {{.Name}}
+                </label><br>
+            {{end}}
+        
+            <button type="submit">Publier</button>
+            <button type="button" onclick="closeCreatePostForm()">Annuler</button>
+        </form>
     </div>
 
     
@@ -230,7 +255,7 @@ function deletePost(postID) {
         if (data.success) {
             console.log("Suppression réussie, tentative de suppression du post du DOM.");
             
-            let postElement = document.getElementById(`post-${postID}`);
+            let postElement = document.getElementById(`post-wrapper-${postID}`);
             console.log("🔍 Élément HTML trouvé ?", postElement !== null);
 
             if (postElement) {
@@ -439,7 +464,7 @@ function submitComment(postID) {
         div.style.padding = "5px";
 
         div.innerHTML = `
-        <p><strong>${data.comment.username}</strong> : ${data.comment.content}</p>
+        <p><strong><a href="/user/profile/${data.comment.username}">${data.comment.username}</a></strong> : ${data.comment.content}</p>
         <small style="color: #aaa;">Posté le ${data.comment.createdAt}</small><br>
         <p>
             👍 <span id="comment-like-${data.comment.id}">0</span>
@@ -640,6 +665,17 @@ function deleteAllNotifications() {
         }
     })
     .catch(() => alert("Erreur réseau lors de la suppression."));
+}
+
+// Modal pour créer un post
+function openCreatePostForm() {
+    const modal = document.getElementById("create-post-form");
+    if (modal) modal.style.display = "block";
+}
+
+function closeCreatePostForm() {
+    const modal = document.getElementById("create-post-form");
+    if (modal) modal.style.display = "none";
 }
 
 
