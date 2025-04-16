@@ -10,7 +10,6 @@
     <h2>Panneau d'administration</h2>
     <table border="1">
         <tr>
-            <th>ID</th>
             <th>Nom d'utilisateur</th>
             <th>Rôle</th>
             <th>Action</th>
@@ -19,7 +18,6 @@
         </tr>
         {{range .Users}}
         <tr>
-            <td>{{.ID}}</td>
             <td>{{.Username}}</td>
             <td>
                 <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
