@@ -21,8 +21,8 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 		CreatedAt string `json:"created_at"`
 		Seen      bool   `json:"seen"`
 	}
-
-	var result []JSONNotif
+	
+	var result = make([]JSONNotif, 0)
 	for _, n := range notifs {
 		result = append(result, JSONNotif{
 			Message:   n.Message,
@@ -32,7 +32,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(result)	
 }
 
 func MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
@@ -54,5 +54,6 @@ func DeleteAllNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]any{"success": true})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]any{}) // tableau vide
 }
