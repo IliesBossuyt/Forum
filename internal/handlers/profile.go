@@ -99,9 +99,25 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Vérifie si l'utilisateur s'est connecté avec un service externe
-		if user.Provider.Valid && user.Provider.String == "google" || user.Provider.Valid && user.Provider.String == "github" {
-			http.Error(w, "Modification des informations impossible pour les comptes Google ou Github", http.StatusForbidden)
+		isExternal := user.Provider.Valid && (user.Provider.String == "google" || user.Provider.String == "github")
+
+		// Cas : compte Google/GitHub
+		if isExternal {
+			// On vérifie s'il y a tentative de modifier autre chose que la visibilité
+			if input.Username != user.Username || input.Email != user.Email || input.NewPassword != "" {
+				http.Error(w, "Seule la visibilité du profil est modifiable pour les comptes Google/GitHub", http.StatusForbidden)
+				return
+			}
+
+			// On met à jour uniquement la visibilité
+			err := models.UpdateVisibilityOnly(user.ID, input.IsPublic)
+			if err != nil {
+				http.Error(w, "Erreur lors de la mise à jour de la visibilité", http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Visibilité mise à jour avec succès"))
 			return
 		}
 

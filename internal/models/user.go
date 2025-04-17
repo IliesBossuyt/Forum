@@ -156,6 +156,12 @@ func CreateGitHubUser(username, email, githubID string) error {
 	return err
 }
 
+// Met à jour la visibilité d'un utilisateur
+func UpdateVisibilityOnly(userID string, isPublic bool) error {
+	_, err := database.DB.Exec(`UPDATE users SET is_public = ? WHERE id = ?`, isPublic, userID)
+	return err
+}
+
 // Normalise les champs NULL de l'utilisateur
 func (u *User) Normalize() {
 	if !u.Password.Valid {
