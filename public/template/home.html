@@ -86,9 +86,11 @@
                 </div>
                 
                 <div class="post-actions">
-                    <button class="like-btn" onclick="likePost('{{.ID}}', 1)">👍 Like</button>
-                    <button class="dislike-btn" onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
-                    <button class="report-btn" onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
+                    {{if ne $.UserID ""}}
+                        <button class="like-btn" onclick="likePost('{{.ID}}', 1)">👍 Like</button>
+                        <button class="dislike-btn" onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+                        <button class="report-btn" onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
+                    {{end}}
 
             <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
             {{if eq .UserID $.UserID}}
@@ -127,26 +129,30 @@
                                 </div>
                                 
                                 <div class="comment-actions">
-                            <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
-                            <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
-                            <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
+                                    {{if ne $.UserID ""}}
+                                        <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
+                                        <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
+                                        <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
+                                    {{end}}
 
-                            {{if eq .UserID $.UserID}}
-                                <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
-                            {{end}}
-                            
-                            {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
-                                <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
-                            {{end}}                                            
-                        </div>
+                                    {{if eq .UserID $.UserID}}
+                                        <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
+                                    {{end}}
+                                    
+                                    {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
+                                        <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
+                                    {{end}}                                            
+                                </div>
                             </div>
                         {{end}}
                     {{end}}
 
                 <!-- Formulaire d'ajout de commentaire -->
                     <div class="comment-form">
-                        <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..."></textarea>
-                <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
+                        {{if ne $.UserID ""}}
+                            <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..."></textarea>
+                            <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
+                        {{end}}
                     </div>
                 </div>
             </div>
