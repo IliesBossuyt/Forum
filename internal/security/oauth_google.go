@@ -13,20 +13,22 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+// Configuration OAuth pour Google
 var googleOAuthConfig *oauth2.Config
 
+// Initialisation de la configuration OAuth au démarrage
 func init() {
-	// Charger le fichier .env une seule fois
+	// Charge les variables d'environnement depuis le fichier .env
 	err := godotenv.Load("../.env")
 	if err != nil {
 		fmt.Println("Erreur de chargement du fichier .env :", err)
 	}
 
-	// Lire les valeurs du .env
+	// Récupère les identifiants OAuth depuis les variables d'environnement
 	clientID := os.Getenv("GOOGLE_CLIENT_ID")
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 
-	// Initialisation de la configuration OAuth après chargement des variables
+	// Configure les paramètres OAuth pour Google
 	googleOAuthConfig = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -36,28 +38,30 @@ func init() {
 	}
 }
 
-// Redirection vers Google pour authentification
+// Redirige l'utilisateur vers la page d'authentification Google
 func GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	// Configure la redirection avec sélection du compte
 	url := googleOAuthConfig.AuthCodeURL("randomstate", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "select_account"))
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-// Callback après connexion Google
+// Gère le callback après l'authentification Google
 func GoogleCallback(w http.ResponseWriter, r *http.Request) {
+	// Récupère le code d'autorisation
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "Code de connexion manquant", http.StatusBadRequest)
 		return
 	}
 
-	// Échanger le code contre un token d'accès
+	// Échange le code contre un token d'accès
 	token, err := googleOAuthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'échange du token", http.StatusInternalServerError)
 		return
 	}
 
-	// Récupérer les infos utilisateur depuis l'API Google
+	// Récupère les informations de l'utilisateur depuis l'API Google
 	client := googleOAuthConfig.Client(r.Context(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -66,27 +70,30 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Lire la réponse JSON
+	// Structure pour stocker les informations de l'utilisateur Google
 	var googleUser struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Email string `json:"email"`
+		ID    string `json:"id"`    // ID unique Google
+		Name  string `json:"name"`  // Nom complet
+		Email string `json:"email"` // Email principal
 	}
+
+	// Décode les informations de l'utilisateur
 	err = json.NewDecoder(resp.Body).Decode(&googleUser)
 	if err != nil {
 		http.Error(w, "Erreur de lecture des infos utilisateur", http.StatusInternalServerError)
 		return
 	}
 
-	// Vérifier si l'utilisateur existe déjà en base
+	// Vérifie si l'utilisateur existe déjà
 	user, err := models.GetUserByEmail(googleUser.Email)
 	if err != nil {
 		http.Error(w, "Erreur interne", http.StatusInternalServerError)
 		return
 	}
 
-	// Si l'utilisateur n'existe pas, le créer
+	// Crée un nouvel utilisateur si nécessaire
 	if user == nil {
+		// Nettoie le nom d'utilisateur (supprime les espaces)
 		cleanName := strings.ReplaceAll(googleUser.Name, " ", "")
 		err = models.CreateGoogleUser(cleanName, googleUser.Email, googleUser.ID)
 		if err != nil {
@@ -94,7 +101,7 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Récupérer l'utilisateur après l'insertion
+		// Récupère l'utilisateur après création
 		user, err = models.GetUserByEmail(googleUser.Email)
 		if err != nil || user == nil {
 			http.Error(w, "ERREUR: Impossible de récupérer l'utilisateur après insertion", http.StatusInternalServerError)
@@ -102,23 +109,23 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Créer le cookie pour l'utilisateur
+	// Crée la session et redirige
 	err = CreateCookie(w, r, user.ID, user.Role)
 	if err != nil {
 		http.Error(w, "Erreur lors de la création du cookie", http.StatusInternalServerError)
 		return
 	}
 
-	// Redirection via un script JS qui ferme la pop-up et recharge la page principale
+	// Redirige vers la page d'accueil avec gestion de la pop-up
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `
     <script>
         if (window.opener) {
             window.opener.location.href = "/entry/home";
-            window.close(); // Fermer la pop-up
+            window.close(); // Ferme la pop-up
         } else {
             window.location.href = "/entry/home";
         }
     </script>
-	`,)
+    `)
 }

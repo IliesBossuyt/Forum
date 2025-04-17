@@ -5,23 +5,25 @@ import (
 	"time"
 )
 
+// Structure d'un post
 type Post struct {
-	ID              int
-	UserID          string
-	Username        string
-	Content         string
-	Image           []byte
-	CreatedAt       string
-	Likes           int
-	Dislikes        int
-	CurrentUserID   string
-	CurrentUserRole string
-	Comments        []Comment
-	Categories      []Category
+	ID              int        // Identifiant unique
+	UserID          string     // ID de l'auteur
+	Username        string     // Nom de l'auteur
+	Content         string     // Contenu du post
+	Image           []byte     // Image du post
+	CreatedAt       string     // Date de création formatée
+	Likes           int        // Nombre de likes
+	Dislikes        int        // Nombre de dislikes
+	CurrentUserID   string     // ID de l'utilisateur actuel
+	CurrentUserRole string     // Rôle de l'utilisateur actuel
+	Comments        []Comment  // Liste des commentaires
+	Categories      []Category // Liste des catégories
 }
 
-// Récupérer tous les posts
+// Récupère tous les posts avec leurs likes/dislikes
 func GetAllPosts() ([]Post, error) {
+	// Requête pour obtenir les posts avec leurs statistiques
 	rows, err := database.DB.Query(`
 		SELECT posts.id, posts.user_id, users.username, posts.content, posts.image, posts.created_at,
 			COALESCE(SUM(CASE WHEN likes.value = 1 THEN 1 ELSE 0 END), 0) AS likes,
@@ -37,6 +39,7 @@ func GetAllPosts() ([]Post, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var posts []Post
 	for rows.Next() {
 		var post Post
@@ -46,9 +49,10 @@ func GetAllPosts() ([]Post, error) {
 			return nil, err
 		}
 
-		// Formatage de la date en jj/mm/aaaa hh:mm
+		// Formatage de la date
 		post.CreatedAt = createdAt.Format("02/01/2006 15:04")
 
+		// Récupère les catégories du post
 		categories, err := GetCategoriesByPostID(post.ID)
 		if err != nil {
 			return nil, err
@@ -61,6 +65,7 @@ func GetAllPosts() ([]Post, error) {
 	return posts, nil
 }
 
+// Crée un nouveau post
 func CreatePost(userID, content string, image []byte) (int, error) {
 	result, err := database.DB.Exec(
 		"INSERT INTO posts (user_id, content, image, created_at) VALUES (?, ?, ?, ?)",
@@ -70,6 +75,7 @@ func CreatePost(userID, content string, image []byte) (int, error) {
 		return 0, err
 	}
 
+	// Récupère l'ID du post créé
 	postID, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
@@ -78,6 +84,7 @@ func CreatePost(userID, content string, image []byte) (int, error) {
 	return int(postID), nil
 }
 
+// Récupère un post par son ID
 func GetPostByID(postID int) (*Post, error) {
 	var post Post
 	err := database.DB.QueryRow("SELECT id, user_id, content FROM posts WHERE id = ?", postID).
@@ -88,7 +95,7 @@ func GetPostByID(postID int) (*Post, error) {
 	return &post, nil
 }
 
-// Modifier un post
+// Met à jour un post existant
 func UpdatePost(postID int, content string, imageData []byte, deleteImage bool) error {
 	if deleteImage {
 		_, err := database.DB.Exec("UPDATE posts SET content = ?, image = NULL WHERE id = ?", content, postID)
@@ -104,7 +111,7 @@ func UpdatePost(postID int, content string, imageData []byte, deleteImage bool) 
 	return err
 }
 
-// Récupérer l'image d'un post
+// Récupère l'image d'un post
 func GetPostImage(postID int) ([]byte, error) {
 	var imageData []byte
 	err := database.DB.QueryRow("SELECT image FROM posts WHERE id = ?", postID).Scan(&imageData)
@@ -114,34 +121,34 @@ func GetPostImage(postID int) ([]byte, error) {
 	return imageData, nil
 }
 
-// Supprimer un post (et ses dépendances)
+// Supprime un post et toutes ses dépendances
 func DeletePost(postID int) error {
-	// Supprimer les likes sur le post
+	// Supprime les likes sur le post
 	if _, err := database.DB.Exec("DELETE FROM likes WHERE post_id = ?", postID); err != nil {
 		return err
 	}
 
-	// Supprimer les likes sur les commentaires du post
+	// Supprime les likes sur les commentaires
 	if _, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)", postID); err != nil {
 		return err
 	}
 
-	// Supprimer les signalements sur les commentaires du post
+	// Supprime les signalements sur les commentaires
 	if _, err := database.DB.Exec("DELETE FROM comment_reports WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)", postID); err != nil {
 		return err
 	}
 
-	// Supprimer les commentaires
+	// Supprime les commentaires
 	if _, err := database.DB.Exec("DELETE FROM comments WHERE post_id = ?", postID); err != nil {
 		return err
 	}
 
-	// Supprimer les signalements du post
+	// Supprime les signalements du post
 	if _, err := database.DB.Exec("DELETE FROM reports WHERE post_id = ?", postID); err != nil {
 		return err
 	}
 
-	// Supprimer le post lui-même
+	// Supprime le post
 	if _, err := database.DB.Exec("DELETE FROM posts WHERE id = ?", postID); err != nil {
 		return err
 	}
@@ -149,6 +156,7 @@ func DeletePost(postID int) error {
 	return nil
 }
 
+// Récupère les catégories d'un post
 func GetCategoriesByPostID(postID int) ([]Category, error) {
 	rows, err := database.DB.Query(`
 		SELECT c.id, c.name
@@ -171,6 +179,7 @@ func GetCategoriesByPostID(postID int) ([]Category, error) {
 	return categories, nil
 }
 
+// Récupère les posts d'une catégorie
 func GetPostsByCategoryID(categoryID int) ([]Post, error) {
 	rows, err := database.DB.Query(`
 		SELECT p.id, p.user_id, u.username, p.content, p.image, p.created_at,
@@ -199,10 +208,10 @@ func GetPostsByCategoryID(categoryID int) ([]Post, error) {
 			return nil, err
 		}
 
-		// Formatage de la date en jj/mm/aaaa hh:mm
+		// Formatage de la date
 		post.CreatedAt = createdAt.Format("02/01/2006 15:04")
 
-		// Ajouter les catégories du post
+		// Ajoute les catégories du post
 		categories, err := GetCategoriesByPostID(post.ID)
 		if err != nil {
 			return nil, err
@@ -214,6 +223,7 @@ func GetPostsByCategoryID(categoryID int) ([]Post, error) {
 	return posts, nil
 }
 
+// Associe un post à des catégories
 func LinkPostToCategories(postID int, categoryIDs []int) error {
 	for _, categoryID := range categoryIDs {
 		_, err := database.DB.Exec(`
@@ -226,6 +236,7 @@ func LinkPostToCategories(postID int, categoryIDs []int) error {
 	return nil
 }
 
+// Récupère les posts les plus populaires
 func GetTopPosts() ([]Post, error) {
 	rows, err := database.DB.Query(`
 		SELECT p.id, p.user_id, u.username, p.content, p.image, p.created_at,
@@ -252,9 +263,10 @@ func GetTopPosts() ([]Post, error) {
 			return nil, err
 		}
 
-		// Formatage de la date en jj/mm/aaaa hh:mm
+		// Formatage de la date
 		post.CreatedAt = createdAt.Format("02/01/2006 15:04")
 
+		// Ajoute les catégories du post
 		categories, err := GetCategoriesByPostID(post.ID)
 		if err != nil {
 			return nil, err

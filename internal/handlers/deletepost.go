@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -37,7 +36,6 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	post, err := models.GetPostByID(postID)
 	if err != nil {
 		http.Error(w, "Post introuvable", http.StatusNotFound)
-		fmt.Println(err)
 		return
 	}
 
@@ -50,7 +48,6 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	err = models.DeletePost(postID)
 	if err != nil {
 		http.Error(w, "Erreur lors de la suppression", http.StatusInternalServerError)
-		fmt.Println(err)
 		return
 	}
 

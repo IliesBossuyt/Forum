@@ -5,18 +5,21 @@ import (
 	"time"
 )
 
+// Structure d'un signalement de commentaire
 type CommentReport struct {
-	ID              int
-	CommentID       int
-	Reporter        string
-	Reason          string
-	CreatedAt       time.Time
-	CommentText     string
-	CommentAuthor   string
-	CommentAuthorID string
+	ID              int       // Identifiant unique
+	CommentID       int       // ID du commentaire signalé
+	Reporter        string    // Nom de l'utilisateur qui signale
+	Reason          string    // Raison du signalement
+	CreatedAt       time.Time // Date de création
+	CommentText     string    // Contenu du commentaire signalé
+	CommentAuthor   string    // Nom de l'auteur du commentaire
+	CommentAuthorID string    // ID de l'auteur du commentaire
 }
 
+// Récupère tous les signalements de commentaires
 func GetAllCommentReports() ([]CommentReport, error) {
+	// Requête pour obtenir les signalements avec les détails des commentaires
 	rows, err := database.DB.Query(`
 		SELECT cr.id, cr.comment_id, u.username AS reporter_name, cr.reason, cr.created_at,
 			c.content AS comment_content, cu.username AS comment_author, cu.id AS comment_author_id
@@ -31,6 +34,7 @@ func GetAllCommentReports() ([]CommentReport, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var reports []CommentReport
 	for rows.Next() {
 		var r CommentReport
@@ -43,6 +47,7 @@ func GetAllCommentReports() ([]CommentReport, error) {
 	return reports, nil
 }
 
+// Crée un nouveau signalement de commentaire
 func CreateCommentReport(commentID int, reporterID, reason string) error {
 	_, err := database.DB.Exec(`
 		INSERT INTO comment_reports (comment_id, reporter_id, reason, created_at)
@@ -52,6 +57,7 @@ func CreateCommentReport(commentID int, reporterID, reason string) error {
 	return err
 }
 
+// Supprime un signalement de commentaire par son ID
 func DeleteCommentReportByID(reportID int) error {
 	_, err := database.DB.Exec("DELETE FROM comment_reports WHERE id = ?", reportID)
 	return err

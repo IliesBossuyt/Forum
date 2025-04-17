@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// Clés pour le contexte
 type contextKey string
 
 const (
@@ -20,22 +21,23 @@ const (
 	ContextRoleKey   contextKey = "role"
 )
 
-// Middleware pour la vérification des roles, des sessions et du ban
+// Middleware pour vérifier les rôles, les sessions et le statut de bannissement
 func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID, role string
-			role = "guest" // Valeur par défaut pour les visiteurs
+			role = "guest" // Rôle par défaut pour les visiteurs
 
+			// Vérifie la session
 			cookie, err := r.Cookie("session")
 			if err == nil {
-				// Vérifier le token (signature et User-Agent)
+				// Vérifie le token (signature et User-Agent)
 				uid, userRole, valid := ValidateSecureToken(cookie.Value, r.UserAgent())
 				if valid {
 					userID = uid
 					role = userRole
 
-					// Vérifier la session en base de données
+					// Vérifie la session en base de données
 					sessionUUID := ExtractUUID(cookie.Value)
 					storedUserID, storedRole, expiresAt, err := models.GetUserIDFromSession(sessionUUID)
 					if err != nil || storedUserID != userID || storedRole != role || expiresAt.Before(time.Now()) {
@@ -43,7 +45,7 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 						return
 					}
 
-					// Vérifier si l'utilisateur est banni
+					// Vérifie si l'utilisateur est banni
 					user, err := models.GetUserByID(userID)
 					if err != nil || user == nil || user.Banned {
 						http.Error(w, "Utilisateur invalide ou banni", http.StatusUnauthorized)
@@ -52,14 +54,13 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			// Si rôle non autorisé → redirection
+			// Vérifie si le rôle est autorisé
 			if !contains(allowedRoles, role) {
-                http.Redirect(w, r, "/auth/unauthorized", http.StatusSeeOther)
+				http.Redirect(w, r, "/auth/unauthorized", http.StatusSeeOther)
 				return
 			}
 
-			// Ajout des infos au contexte
-			// Injecter l'utilisateur dans le contexte
+			// Ajoute les informations au contexte
 			ctx := context.WithValue(r.Context(), ContextUserIDKey, userID)
 			ctx = context.WithValue(ctx, ContextRoleKey, role)
 
@@ -68,6 +69,7 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 	}
 }
 
+// Vérifie si un rôle est dans la liste des rôles autorisés
 func contains(roles []string, target string) bool {
 	for _, role := range roles {
 		if role == target {
@@ -77,16 +79,17 @@ func contains(roles []string, target string) bool {
 	return false
 }
 
+// Structure pour le rate limiting
 type Bucket struct {
-	tokens      int
-	lastUpdated time.Time
-	mu          sync.Mutex
+	tokens      int        // Nombre de tokens disponibles
+	lastUpdated time.Time  // Dernière mise à jour
+	mu          sync.Mutex // Mutex pour la synchronisation
 }
 
 var buckets = make(map[string]*Bucket)
 var bucketsMu sync.Mutex
 
-// NewRateLimitMiddleware crée un middleware personnalisé avec un générateur de clé
+// Crée un middleware de rate limiting personnalisé
 func NewRateLimitMiddleware(rate int, per time.Duration, keyFunc func(r *http.Request) string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,6 +110,7 @@ func NewRateLimitMiddleware(rate int, per time.Duration, keyFunc func(r *http.Re
 	}
 }
 
+// Vérifie si une requête est autorisée selon le rate limit
 func allowRequest(key string, rate int, per time.Duration) bool {
 	bucketsMu.Lock()
 	bucket, exists := buckets[key]
@@ -119,6 +123,7 @@ func allowRequest(key string, rate int, per time.Duration) bool {
 	bucket.mu.Lock()
 	defer bucket.mu.Unlock()
 
+	// Calcule les nouveaux tokens disponibles
 	now := time.Now()
 	elapsed := now.Sub(bucket.lastUpdated)
 	newTokens := int(elapsed / per)
@@ -136,6 +141,7 @@ func allowRequest(key string, rate int, per time.Duration) bool {
 	return false
 }
 
+// Retourne le minimum entre deux entiers
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -143,8 +149,9 @@ func min(a, b int) int {
 	return b
 }
 
-// === Fonctions utilitaires pour générer des clés ===
+// Fonctions utilitaires pour les clés de rate limiting
 
+// Récupère l'adresse IP de la requête
 func GetIP(r *http.Request) string {
 	ip := r.RemoteAddr
 	if strings.Contains(ip, ":") {
@@ -153,6 +160,7 @@ func GetIP(r *http.Request) string {
 	return ip
 }
 
+// Récupère l'email depuis la requête
 func EmailFromRequest(r *http.Request) string {
 	r.ParseForm()
 	email := r.FormValue("identifier")
@@ -162,6 +170,7 @@ func EmailFromRequest(r *http.Request) string {
 	return strings.ToLower(email)
 }
 
+// Récupère l'identifiant depuis le corps de la requête
 func IdentifierKey(r *http.Request) string {
 	if r.Method != http.MethodPost {
 		return ""
@@ -183,12 +192,15 @@ func IdentifierKey(r *http.Request) string {
 	return strings.ToLower(data.Identifier)
 }
 
+// Récupère l'ID utilisateur depuis le contexte
 func UserIDFromContext(r *http.Request) string {
 	id, _ := r.Context().Value(ContextUserIDKey).(string)
 	return id
 }
 
-// Middleware pour le login
+// Middlewares de rate limiting prédéfinis
+
+// Limite les tentatives de connexion par IP
 var RateLimitLoginByIP = NewRateLimitMiddleware(10, time.Minute, func(r *http.Request) string {
 	if r.Method != http.MethodPost {
 		return "" // Ne limite pas les requêtes non POST
@@ -196,6 +208,7 @@ var RateLimitLoginByIP = NewRateLimitMiddleware(10, time.Minute, func(r *http.Re
 	return "login-ip:" + GetIP(r)
 })
 
+// Limite les tentatives de connexion par identifiant
 var RateLimitLoginByIdentifier = NewRateLimitMiddleware(5, time.Minute, func(r *http.Request) string {
 	if r.Method != http.MethodPost {
 		return ""
@@ -203,7 +216,7 @@ var RateLimitLoginByIdentifier = NewRateLimitMiddleware(5, time.Minute, func(r *
 	return "login-id:" + IdentifierKey(r)
 })
 
-// Middleware pour le register
+// Limite les inscriptions par IP
 var RateLimitRegisterByIP = NewRateLimitMiddleware(3, time.Minute, func(r *http.Request) string {
 	if r.Method != http.MethodPost {
 		return ""
@@ -211,12 +224,12 @@ var RateLimitRegisterByIP = NewRateLimitMiddleware(3, time.Minute, func(r *http.
 	return "register-ip:" + GetIP(r)
 })
 
-// Middleware pour la création de post
+// Limite la création de posts par utilisateur
 var RateLimitCreatePost = NewRateLimitMiddleware(5, time.Minute, func(r *http.Request) string {
 	return "createpost-userid:" + UserIDFromContext(r)
 })
 
-// Middleware global
+// Limite globale par IP
 var RateLimitGlobal = NewRateLimitMiddleware(200, time.Second, func(r *http.Request) string {
 	return "global:" + GetIP(r)
 })

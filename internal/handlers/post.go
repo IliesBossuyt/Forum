@@ -9,7 +9,7 @@ import (
 	"Forum/internal/security"
 )
 
-// Formats autorisés
+// Formats d'image autorisés pour les posts
 var allowedFormats = map[string]bool{
 	"image/jpeg": true,
 	"image/png":  true,
@@ -17,49 +17,50 @@ var allowedFormats = map[string]bool{
 	"image/jpg":  true,
 }
 
-// Taille max des fichiers (20 MB)
+// Taille maximale autorisée pour les images (20 MB)
 const maxFileSize = 20 * 1024 * 1024 // 20MB
 
-// Gestion de la création d'un post
+// Gère la création d'un nouveau post
 func CreatePost(w http.ResponseWriter, r *http.Request) {
+	// Vérifie que la méthode est POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Récupérer userID et rôle depuis le middleware
+	// Récupère l'ID de l'utilisateur depuis le contexte
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 
-	// Vérification du contenu du post : il faut AU MOINS du texte ou une image
+	// Récupère le contenu texte du post
 	content := r.FormValue("content")
 
-	// Récupération de l'image envoyée
+	// Récupère l'image si elle est présente
 	file, _, err := r.FormFile("image")
 	var imageData []byte
 
 	if err == nil { // Si un fichier est bien envoyé
 		defer file.Close()
-		imageData, _ = io.ReadAll(file) // Lire le fichier en bytes
+		imageData, _ = io.ReadAll(file) // Lit le fichier en bytes
 	}
 
-	// Vérification : soit `content`, soit `imageData`, soit les deux doivent être présents
+	// Vérifie qu'il y a au moins du texte ou une image
 	if content == "" && len(imageData) == 0 {
 		http.Error(w, "Le message doit contenir du texte ou une image", http.StatusBadRequest)
 		return
 	}
 
-	// Récupérer l’image et la stocker en BLOB avec vérifications
+	// Traitement de l'image si elle est présente
 	file, header, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
 
-		// Vérifier la taille
+		// Vérifie la taille du fichier
 		if header.Size > maxFileSize {
 			http.Error(w, "Fichier trop volumineux (max 20MB)", http.StatusBadRequest)
 			return
 		}
 
-		// Vérifier le format du fichier
+		// Vérifie le format du fichier
 		buffer := make([]byte, 512)
 		_, err = file.Read(buffer)
 		if err != nil {
@@ -73,7 +74,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Revenir au début du fichier avant de le lire complètement
+		// Reviens au début du fichier pour le lire complètement
 		file.Seek(0, io.SeekStart)
 		imageData, err = io.ReadAll(file)
 		if err != nil {
@@ -82,12 +83,14 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Insérer le post dans la base de données
+	// Crée le post dans la base de données
 	postID, err := models.CreatePost(userID, content, imageData)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du post", http.StatusInternalServerError)
 		return
 	}
+
+	// Récupère et traite les catégories associées au post
 	categoryIDsStr := r.Form["categories"]
 	var categoryIDs []int
 	for _, idStr := range categoryIDsStr {
@@ -99,12 +102,13 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		categoryIDs = append(categoryIDs, id)
 	}
 
+	// Lie le post aux catégories sélectionnées
 	err = models.LinkPostToCategories(postID, categoryIDs)
 	if err != nil {
 		http.Error(w, "Erreur lors du lien post-catégories", http.StatusInternalServerError)
 		return
 	}
 
-	// Rediriger vers /home après la publication
+	// Redirige vers la page d'accueil après la création
 	http.Redirect(w, r, "/entry/home", http.StatusSeeOther)
 }

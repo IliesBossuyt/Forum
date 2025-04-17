@@ -3,206 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Liens vers les ressources externes -->
     <link rel="stylesheet" href="/static/css/home.css">
     <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
     <title>Forum - Accueil</title>
 </head>
 <body data-user-role="{{.Role}}">
+    <!-- Conteneur principal de la page d'accueil -->
     <div class="home-container">
-        <!-- Logo en haut à gauche -->
+        <!-- Logo du site avec lien vers la page d'accueil -->
         <div class="site-logo">
             <a href="/entry/home">
                 <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
             </a>
         </div>
 
-        <!-- Navigation en haut à droite -->
+        <!-- Barre de navigation supérieure -->
         <div class="top-right-nav">
+            <!-- Menu pour utilisateurs connectés -->
             {{if ne .UserID ""}}
             <a href="/user/profile/{{.Username}}"><button>👤 Mon profil</button></a>
                 <button id="notifBtn" onclick="toggleNotifMenu()">🔔 Notifications <span id="notifCount" class="notif-count" style="display: none;">0</span></button>
             {{else}}
+                <!-- Menu pour utilisateurs non connectés -->
                 <a href="/auth/login"><button>🔑 Se connecter</button></a>
                 <a href="/auth/register"><button>📝 Créer un compte</button></a>
-        {{end}}
-        {{if or (eq .Role "admin") (eq .Role "moderator")}}
+            {{end}}
+            <!-- Lien vers le tableau de bord pour les administrateurs et modérateurs -->
+            {{if or (eq .Role "admin") (eq .Role "moderator")}}
                 <a href="/admin/dashboard"><button>📊 Dashboard Admin</button></a>
-        {{end}}
-    </div>
+            {{end}}
+        </div>
 
         <h2>Bienvenue sur le Forum</h2>
         
+        <!-- Section de filtrage et création de posts -->
         <div class="filter-section">
             <form method="GET" action="/entry/home" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <label for="category">Filtrer par catégorie :</label>
-        <select name="category" id="category">
-            <option value="">-- Toutes les catégories --</option>
-            {{range .Categories}}
-                <option value="{{.ID}}">{{.Name}}</option>
-            {{end}}
-        </select>
-        <button type="submit">Filtrer</button>
+                <!-- Filtre par catégorie -->
+                <label for="category">Filtrer par catégorie :</label>
+                <select name="category" id="category">
+                    <option value="">-- Toutes les catégories --</option>
+                    {{range .Categories}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+                <button type="submit">Filtrer</button>
                 
-                <!-- Placé directement dans le même flow -->
+                <!-- Bouton pour voir les posts les plus likés -->
                 <a href="/entry/home?sort=top"><button type="button">🔥 Voir les posts les plus likés</button></a>
                 
+                <!-- Bouton de création de post pour utilisateurs connectés -->
                 {{if ne .UserID ""}}
                     <button type="button" class="create-post" onclick="openCreatePostForm()">📝 Créer un post</button>
                 {{end}}
-    </form>
+            </form>
         </div>
 
-    <h3>Publications récentes</h3>
+        <!-- Section des publications -->
+        <h3>Publications récentes</h3>
         
-    {{range .Posts}}
-        <div id="post-wrapper-{{.ID}}" class="post">
-            <div class="post-categories">
-            {{range .Categories}}
-                    <span class="post-category">{{.Name}}</span>
-            {{end}}
-        </div>
-    
-            <div id="post-{{.ID}}">
-                <div class="post-header">
-                    <div class="post-author">
-                        <strong>Posté par :</strong> <a href="/user/profile/{{.Username}}">{{.Username}}</a>
-                    </div>
-                    <div class="post-date">
-                        <small>{{.CreatedAt}}</small>
-                    </div>
-                </div>
-                
-                <div class="post-content" id="content-{{.ID}}">{{.Content}}</div>
-                
-                {{if .Image}}
-                    <div class="post-image">
-                        <img src="/entry/image/{{.ID}}" alt="Image postée" onclick="openModal('/entry/image/{{.ID}}')">
-                    </div>
-                {{end}}
-            
-                <div class="post-stats">
-                    <div>👍 <span id="likes-{{.ID}}">{{.Likes}}</span></div>
-                    <div>👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></div>
-                    <div>💬 <span>{{len .Comments}}</span></div>
-                </div>
-                
-                <div class="post-actions">
-                    {{if ne $.UserID ""}}
-                        <button class="like-btn" onclick="likePost('{{.ID}}', 1)">👍 Like</button>
-                        <button class="dislike-btn" onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+        <!-- Boucle sur les posts -->
+        {{range .Posts}}
+            <div id="post-wrapper-{{.ID}}" class="post">
+                <!-- Affichage des catégories du post -->
+                <div class="post-categories">
+                    {{range .Categories}}
+                        <span class="post-category">{{.Name}}</span>
                     {{end}}
+                </div>
+            
+                <div id="post-{{.ID}}">
+                    <!-- En-tête du post avec auteur et date -->
+                    <div class="post-header">
+                        <div class="post-author">
+                            <strong>Posté par :</strong> <a href="/user/profile/{{.Username}}">{{.Username}}</a>
+                        </div>
+                        <div class="post-date">
+                            <small>{{.CreatedAt}}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenu du post -->
+                    <div class="post-content" id="content-{{.ID}}">{{.Content}}</div>
+                    
+                    <!-- Image du post si elle existe -->
+                    {{if .Image}}
+                        <div class="post-image">
+                            <img src="/entry/image/{{.ID}}" alt="Image postée" onclick="openModal('/entry/image/{{.ID}}')">
+                        </div>
+                    {{end}}
+                
+                    <!-- Statistiques du post (likes, dislikes, commentaires) -->
+                    <div class="post-stats">
+                        <div>👍 <span id="likes-{{.ID}}">{{.Likes}}</span></div>
+                        <div>👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></div>
+                        <div>💬 <span>{{len .Comments}}</span></div>
+                    </div>
+                    
+                    <!-- Actions possibles sur le post -->
+                    <div class="post-actions">
+                        <!-- Boutons de like/dislike pour utilisateurs connectés -->
+                        {{if ne $.UserID ""}}
+                            <button class="like-btn" onclick="likePost('{{.ID}}', 1)">👍 Like</button>
+                            <button class="dislike-btn" onclick="likePost('{{.ID}}', -1)">👎 Dislike</button>
+                        {{end}}
 
-                    <!-- Bouton Afficher/Masquer les commentaires -->
+                        <!-- Bouton pour afficher/masquer les commentaires -->
                         <button class="comment-btn" onclick="toggleComments('{{.ID}}')">💬 Commentaires</button>
 
-                    <!-- Bouton Modifier : Seulement visible pour le créateur du post -->
-                    {{if eq .UserID $.UserID}}
-                                <button class="edit-btn" onclick="editPost('{{.ID}}')">✏ Modifier</button>
-                    {{end}}
-
-                    <!-- Bouton Supprimer : Visible pour le créateur du post et les admins -->
-                            {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
-                                <button class="delete-btn" onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
-                    {{end}}
-                        
-                    {{if ne $.UserID ""}}
-                        <button class="report-btn" onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
-                    {{end}}
-
-                </div>
-
-            <!-- Zone de commentaires -->
-                <div id="comments-{{.ID}}" class="comments-section" style="display:none;">
-                {{ $post := . }}
-                {{if .Comments}}
-                    {{range .Comments}}
-                            <div id="comment-{{.ID}}" class="comment">
-                                <div class="comment-header">
-                                    <div class="comment-author">
-                                        <a href="/user/profile/{{.Username}}">{{.Username}}</a>
-                                    </div>
-                                    <div class="comment-date">
-                                        <small>{{.CreatedAt}}</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="comment-content">{{.Content}}</div>
-                                
-                                <div class="comment-stats">
-                                👍 <span id="comment-like-{{.ID}}">{{.Likes}}</span>
-                                | 👎 <span id="comment-dislike-{{.ID}}">{{.Dislikes}}</span>
-                                </div>
-                                
-                                <div class="comment-actions">
-                                    {{if ne $.UserID ""}}
-                                        <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
-                                        <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
-                                        <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
-                                    {{end}}
-
-                                    {{if eq .UserID $.UserID}}
-                                        <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
-                                    {{end}}
-                                    
-                                    {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
-                                        <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
-                                    {{end}}                                            
-                                </div>
-                            </div>
+                        <!-- Bouton de modification pour le créateur du post -->
+                        {{if eq .UserID $.UserID}}
+                            <button class="edit-btn" onclick="editPost('{{.ID}}')">✏ Modifier</button>
                         {{end}}
-                    {{end}}
 
-                <!-- Formulaire d'ajout de commentaire -->
-                    <div class="comment-form">
+                        <!-- Bouton de suppression pour le créateur et les modérateurs -->
+                        {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
+                            <button class="delete-btn" onclick="openDeleteForm('{{.ID}}')">🗑 Supprimer</button>
+                        {{end}}
+                            
+                        <!-- Bouton de signalement pour utilisateurs connectés -->
                         {{if ne $.UserID ""}}
-                            <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..."></textarea>
-                            <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
+                            <button class="report-btn" onclick="reportPost('{{.ID}}')">🚩 Signaler</button>
                         {{end}}
+                    </div>
+
+                    <!-- Section des commentaires -->
+                    <div id="comments-{{.ID}}" class="comments-section" style="display:none;">
+                        {{ $post := . }}
+                        <!-- Affichage des commentaires existants -->
+                        {{if .Comments}}
+                            {{range .Comments}}
+                                <div id="comment-{{.ID}}" class="comment">
+                                    <!-- En-tête du commentaire -->
+                                    <div class="comment-header">
+                                        <div class="comment-author">
+                                            <a href="/user/profile/{{.Username}}">{{.Username}}</a>
+                                        </div>
+                                        <div class="comment-date">
+                                            <small>{{.CreatedAt}}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Contenu du commentaire -->
+                                    <div class="comment-content">{{.Content}}</div>
+                                    
+                                    <!-- Statistiques du commentaire -->
+                                    <div class="comment-stats">
+                                        👍 <span id="comment-like-{{.ID}}">{{.Likes}}</span>
+                                        | 👎 <span id="comment-dislike-{{.ID}}">{{.Dislikes}}</span>
+                                    </div>
+                                    
+                                    <!-- Actions possibles sur le commentaire -->
+                                    <div class="comment-actions">
+                                        <!-- Boutons d'interaction pour utilisateurs connectés -->
+                                        {{if ne $.UserID ""}}
+                                            <button onclick="likeComment('{{.ID}}', 1)">👍 Like</button>
+                                            <button onclick="likeComment('{{.ID}}', -1)">👎 Dislike</button>
+                                            <button onclick="reportComment('{{.ID}}')">🚩 Signaler</button>
+                                        {{end}}
+
+                                        <!-- Bouton de modification pour le créateur du commentaire -->
+                                        {{if eq .UserID $.UserID}}
+                                            <button onclick="editComment('{{.ID}}', '{{.Content}}')">✏ Modifier</button>
+                                        {{end}}
+                                        
+                                        <!-- Bouton de suppression pour le créateur et les modérateurs -->
+                                        {{if or (eq .UserID $.UserID) (eq $.Role "admin") (eq $.Role "moderator")}}
+                                            <button onclick="deleteComment('{{.ID}}')">🗑 Supprimer</button>
+                                        {{end}}                                            
+                                    </div>
+                                </div>
+                            {{end}}
+                        {{end}}
+
+                        <!-- Formulaire d'ajout de commentaire -->
+                        <div class="comment-form">
+                            {{if ne $.UserID ""}}
+                                <textarea id="comment-content-{{.ID}}" placeholder="Ajouter un commentaire..."></textarea>
+                                <button onclick="submitComment('{{.ID}}')">Publier le commentaire</button>
+                            {{end}}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         {{end}}
     </div>
 
-    <!-- Fenêtre modale pour afficher les images en grand -->
+    <!-- Modale pour afficher les images en grand -->
     <div id="imageModal" onclick="closeModal()">
         <span class="close">&times;</span>
         <img id="modalContent">
     </div>
 
-    <!-- Formulaire de modification de post (caché par défaut) -->
+    <!-- Modale de modification de post -->
     <div id="edit-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeEditForm()">&times;</span>
-        <h3>Modifier le post</h3>
+            <h3>Modifier le post</h3>
             <textarea id="edit-content" rows="5" placeholder="Contenu du post..."></textarea>
-        <input type="hidden" id="edit-post-id">
-            
+            <input type="hidden" id="edit-post-id">
+                
             <div>
-        <label for="edit-image">Changer l'image :</label>
-        <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
+                <label for="edit-image">Changer l'image :</label>
+                <input type="file" id="edit-image" accept=".jpg, .jpeg, .png, .gif">
             </div>
-            
+                
             <div class="checkbox-container">
                 <input type="checkbox" id="delete-image">
                 <label for="delete-image" style="display: inline;">Supprimer l'image</label>
             </div>
-            
+                
             <div class="buttons-container">
-        <button onclick="submitEdit()">Enregistrer</button>
+                <button onclick="submitEdit()">Enregistrer</button>
                 <button style="background-color: #555;" onclick="closeEditForm()">Annuler</button>
             </div>
         </div>
     </div>
 
-    <!-- Fenêtre modale pour confirmer la suppression -->
+    <!-- Modale de confirmation de suppression de post -->
     <div id="delete-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeDeleteForm()">&times;</span>
-        <h3>Confirmer la suppression</h3>
+            <h3>Confirmer la suppression</h3>
             <p style="margin-bottom: 20px; color: #ddd;">Voulez-vous vraiment supprimer ce post ? Cette action est irréversible.</p>
-        <input type="hidden" id="delete-post-id">
+            <input type="hidden" id="delete-post-id">
             <div class="buttons-container">
                 <button class="delete-btn" onclick="confirmDelete()">🗑 Supprimer</button>
                 <button style="background-color: #555;" onclick="closeDeleteForm()">Annuler</button>
@@ -210,13 +235,13 @@
         </div>
     </div>
 
-    <!-- Fenêtre modale pour confirmer la suppression d'un commentaire -->
+    <!-- Modale de confirmation de suppression de commentaire -->
     <div id="delete-comment-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeDeleteCommentForm()">&times;</span>
-        <h3>Confirmer la suppression</h3>
+            <h3>Confirmer la suppression</h3>
             <p style="margin-bottom: 20px; color: #ddd;">Voulez-vous vraiment supprimer ce commentaire ? Cette action est irréversible.</p>
-        <input type="hidden" id="delete-comment-id">
+            <input type="hidden" id="delete-comment-id">
             <div class="buttons-container">
                 <button class="delete-btn" onclick="confirmDeleteComment()">🗑 Supprimer</button>
                 <button style="background-color: #555;" onclick="closeDeleteCommentForm()">Annuler</button>
@@ -224,54 +249,56 @@
         </div>
     </div>
 
-    <!-- Fenêtre modale pour modifier un commentaire -->
+    <!-- Modale de modification de commentaire -->
     <div id="edit-comment-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeEditCommentForm()">&times;</span>
-        <h3>Modifier le commentaire</h3>
+            <h3>Modifier le commentaire</h3>
             <textarea id="edit-comment-content" rows="4" placeholder="Contenu du commentaire..."></textarea>
-        <input type="hidden" id="edit-comment-id">
+            <input type="hidden" id="edit-comment-id">
             <div class="buttons-container">
-        <button onclick="submitEditComment()">Enregistrer</button>
+                <button onclick="submitEditComment()">Enregistrer</button>
                 <button style="background-color: #555;" onclick="closeEditCommentForm()">Annuler</button>
             </div>
         </div>
     </div>
 
-    <!-- Fenêtre modale pour créer un post -->
+    <!-- Modale de création de post -->
     <div id="create-post-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeCreatePostForm()">&times;</span>
-        <h3>Créer un post</h3>
-        <form action="/user/create-post" method="POST" enctype="multipart/form-data">
+            <h3>Créer un post</h3>
+            <form action="/user/create-post" method="POST" enctype="multipart/form-data">
                 <textarea name="content" placeholder="Écrivez votre message..." rows="5"></textarea>
                 
+                <!-- Upload d'image -->
                 <div>
                     <label for="post-image">Ajouter une image :</label>
                     <input type="file" name="image" id="post-image" accept=".jpg, .jpeg, .png, .gif">
                 </div>
             
+                <!-- Sélection des catégories -->
                 <div style="margin-bottom: 20px; margin-top: 15px;">
                     <label>Choisir les catégories :</label>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; background-color: #333; padding: 10px; border-radius: 6px; margin-top: 8px;">
-            {{range .Categories}}
+                        {{range .Categories}}
                             <label style="display: flex; align-items: center; margin-bottom: 5px;">
                                 <input type="checkbox" name="categories" value="{{.ID}}" style="margin-right: 8px; min-width: 16px; min-height: 16px;">
                                 <span style="display: inline-block; vertical-align: middle;">{{.Name}}</span>
                             </label>
-            {{end}}
+                        {{end}}
                     </div>
                 </div>
         
                 <div class="buttons-container">
-            <button type="submit">Publier</button>
+                    <button type="submit">Publier</button>
                     <button type="button" style="background-color: #555;" onclick="closeCreatePostForm()">Annuler</button>
                 </div>
-        </form>
+            </form>
         </div>
     </div>
 
-    <!-- Fenêtre modale pour signaler un post -->
+    <!-- Modale de signalement de post -->
     <div id="report-post-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeReportForm()">&times;</span>
@@ -285,7 +312,7 @@
         </div>
     </div>
     
-    <!-- Fenêtre modale pour signaler un commentaire -->
+    <!-- Modale de signalement de commentaire -->
     <div id="report-comment-form" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeReportCommentForm()">&times;</span>
@@ -299,7 +326,7 @@
         </div>
     </div>
     
-    <!-- Dropdown de notifications -->
+    <!-- Menu déroulant des notifications -->
     <div id="notifDropdown" class="notif-dropdown" style="display:none;">
         <h4>Notifications</h4>
         <div>

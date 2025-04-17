@@ -11,25 +11,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// Clé secrète pour sécuriser les tokens
+// Clé secrète pour la signature des tokens
 var secretKey = []byte("super-secret-key")
 
-// Générer un token sécurisé (UUID + Signature + Rôle)
+// Génère un token sécurisé avec UUID, signature et rôle
 func GenerateSecureToken(userID, userAgent, role string) (string, error) {
+	// Génère un UUID unique pour la session
 	sessionUUID := uuid.New().String()
 
+	// Crée une signature HMAC
 	h := hmac.New(sha256.New, secretKey)
 	data := sessionUUID + ":" + userAgent + ":" + role
 	h.Write([]byte(data))
 	signature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
+	// Combine les éléments pour former le token
 	token := sessionUUID + ":" + signature + ":" + role
 
 	return token, nil
 }
 
-// Vérifier si un token est valide (User-Agent)
+// Vérifie la validité d'un token et retourne l'ID utilisateur et le rôle
 func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) {
+	// Découpe le token en ses composants
 	parts := splitToken(token, 3)
 	if len(parts) != 3 {
 		return "", "", false
@@ -37,19 +41,20 @@ func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) 
 
 	sessionUUID, receivedSignature, role := parts[0], parts[1], parts[2]
 
+	// Vérifie la signature
 	h := hmac.New(sha256.New, secretKey)
 	data := sessionUUID + ":" + currentUserAgent + ":" + role
 	h.Write([]byte(data))
 	expectedSignature := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(receivedSignature), []byte(expectedSignature)) {
-		// Récupérer `userID` et `role` depuis la session en base
+		// Récupère les informations de session
 		userID, storedRole, expiresAt, err := models.GetUserIDFromSession(sessionUUID)
 		if err != nil {
 			return "", "", false
 		}
 
-		// Vérifier que le rôle + expiration stocké correspond au rôle du token
+		// Vérifie le rôle et la date d'expiration
 		if storedRole != role || expiresAt.Before(time.Now()) {
 			return "", "", false
 		}
@@ -60,32 +65,33 @@ func ValidateSecureToken(token, currentUserAgent string) (string, string, bool) 
 	return "", "", false
 }
 
-// Créer un cookie sécurisé
+// Crée un cookie sécurisé pour une session
 func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) error {
 	userAgent := r.UserAgent()
 
+	// Vérifie l'existence de l'utilisateur
 	user, err := models.GetUserByID(userID)
 	if err != nil || user == nil {
-		// gérer l'erreur
+		// Gère l'erreur
 	}
 
-	// Générer le token sécurisé
+	// Génère le token sécurisé
 	token, err := GenerateSecureToken(userID, userAgent, role)
 	if err != nil {
 		return err
 	}
 
+	// Définit la date d'expiration
 	expirationTime := time.Now().Add(24 * time.Hour)
 
-	// Insérer en base
+	// Crée la session en base de données
 	sessionUUID := ExtractUUID(token)
-
 	err = models.CreateSession(sessionUUID, userID, userAgent, role, expirationTime)
 	if err != nil {
 		return err
 	}
 
-	// Stocker le cookie
+	// Définit le cookie HTTP
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    token,
@@ -98,13 +104,13 @@ func CreateCookie(w http.ResponseWriter, r *http.Request, userID, role string) e
 	return nil
 }
 
-// Supprimer un cookie et la session en base
+// Supprime un cookie et sa session associée
 func DeleteCookie(w http.ResponseWriter, token string) {
-	// Supprimer en base
+	// Supprime la session de la base de données
 	sessionUUID := ExtractUUID(token)
 	models.DeleteSession(sessionUUID)
 
-	// Supprimer le cookie
+	// Supprime le cookie du navigateur
 	http.SetCookie(w, &http.Cookie{
 		Name:   "session",
 		Value:  "",
@@ -113,7 +119,7 @@ func DeleteCookie(w http.ResponseWriter, token string) {
 	})
 }
 
-// Extraire l'UUID depuis un token sécurisé
+// Extrait l'UUID d'un token sécurisé
 func ExtractUUID(token string) string {
 	parts := splitToken(token, 2)
 	if len(parts) != 2 {
@@ -122,7 +128,7 @@ func ExtractUUID(token string) string {
 	return parts[0]
 }
 
-// Séparer un token en parties
+// Découpe une chaîne en parties selon un séparateur
 func splitToken(s string, n int) []string {
 	parts := make([]string, 0, n)
 	start := 0

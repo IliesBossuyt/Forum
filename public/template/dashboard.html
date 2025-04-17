@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Liens vers les ressources externes -->
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
     <title>Panneau Admin - Forum</title>
 </head>
 <body data-user-role="{{.CurrentUserRole}}">
+    <!-- Conteneur principal du tableau de bord -->
     <div class="dashboard-container">
-        <!-- Logo en haut à gauche -->
+        <!-- Logo du site avec lien vers la page d'accueil -->
         <div class="site-logo">
             <a href="/entry/home">
                 <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
@@ -19,6 +21,7 @@
         
         <h2>Panneau d'administration</h2>
         
+        <!-- Tableau de gestion des utilisateurs -->
         <table>
             <thead>
                 <tr>
@@ -30,10 +33,12 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Boucle sur les utilisateurs pour afficher leurs informations -->
                 {{range .Users}}
                 <tr>
                     <td>{{.Username}}</td>
                     <td>
+                        <!-- Menu déroulant pour changer le rôle de l'utilisateur -->
                         <select id="role-{{.ID}}" data-userid="{{.ID}}" class="role-dropdown">
                             <option value="user" {{if eq .Role "user"}}selected{{end}}>User</option>
                             <option value="moderator" {{if eq .Role "moderator"}}selected{{end}}>Moderator</option>
@@ -41,17 +46,21 @@
                         </select>
                     </td>
                     <td>
+                        <!-- Bouton pour mettre à jour le rôle -->
                         <button data-userid="{{.ID}}" class="update-role-btn">Mettre à jour</button>
                     </td>
                     <td>
+                        <!-- Bouton pour bannir/débannir l'utilisateur -->
                         <button data-userid="{{.ID}}" data-banned="{{.Banned}}" class="ban-toggle-btn">
                             {{if .Banned}}Débannir{{else}}Bannir{{end}}
                         </button>
                     </td>
                     <td>
+                        <!-- Bouton pour accéder au casier de l'utilisateur -->
                         <button class="warn-user-btn" data-userid="{{.ID}}" data-username="{{.Username}}">
                             Casier
                         </button>
+                        <!-- Affichage du nombre d'avertissements -->
                         <span class="warn-count" id="warn-count-{{.ID}}">
                             ({{index $.WarnCounts .ID}})
                         </span>
@@ -61,13 +70,16 @@
             </tbody>
         </table>
 
+        <!-- Section des posts signalés -->
         <h3>Posts signalés</h3>
         <ul>
+            <!-- Boucle sur les signalements de posts -->
             {{range .Reports}}
             <li class="report-item">
                 <div><strong>Post signalé :</strong></div>
                 <div class="report-content">"{{.PostContent}}"</div>
                 
+                <!-- Affichage de l'image du post si elle existe -->
                 {{if .PostImage}}
                 <div>
                     <strong>Image :</strong>
@@ -75,11 +87,13 @@
                 </div>
                 {{end}}
                 
+                <!-- Informations sur le post signalé -->
                 <div><strong>Auteur du post :</strong> {{.PostAuthor}}</div>
                 <div><strong>Signalé par :</strong> {{.Reporter}}</div>
                 <div><strong>Raison :</strong> {{.Reason}}</div>
                 <div><strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}</div>
                 
+                <!-- Actions possibles sur le signalement -->
                 <div class="report-actions">
                     <button class="delete-report-btn" data-reportid="{{.ID}}">
                         Supprimer le signalement
@@ -97,18 +111,22 @@
             {{end}}
         </ul>
 
+        <!-- Section des commentaires signalés -->
         <h3>Commentaires signalés</h3>
         <ul>
+            <!-- Boucle sur les signalements de commentaires -->
             {{range .CommentReports}}
             <li class="report-item">
                 <div><strong>Commentaire signalé :</strong></div>
                 <div class="report-content">"{{.CommentText}}"</div>
                 
+                <!-- Informations sur le commentaire signalé -->
                 <div><strong>Auteur :</strong> {{.CommentAuthor}}</div>
                 <div><strong>Signalé par :</strong> {{.Reporter}}</div>
                 <div><strong>Raison :</strong> {{.Reason}}</div>
                 <div><strong>Date :</strong> {{.CreatedAt.Format "02/01/2006 15:04"}}</div>
                 
+                <!-- Actions possibles sur le signalement -->
                 <div class="report-actions">
                     <button class="delete-comment-report-btn" data-reportid="{{.ID}}">
                         Supprimer le signalement
@@ -126,12 +144,13 @@
             {{end}}
         </ul>
 
-        <!-- Fenêtre modale pour afficher les images en grand -->
+        <!-- Modale pour afficher les images en grand -->
         <div id="imageModal" onclick="closeModal()">
             <span class="close">&times;</span>
             <img id="modalContent">
         </div>
 
+        <!-- Modale pour gérer les avertissements -->
         <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); z-index:999;">
             <h3 id="warnModalTitle">Casier</h3>
             <ul id="warnList"></ul>
@@ -143,10 +162,10 @@
         </div>
     </div>
 
-    <!-- Conteneur des notifications -->
+    <!-- Conteneur pour les notifications -->
     <div class="notification-container" id="notification-container"></div>
 
-    <!-- Conteneur pour la boîte de confirmation -->
+    <!-- Conteneur pour la boîte de dialogue de confirmation -->
     <div class="confirm-overlay" id="confirm-overlay" style="display: none;">
         <div class="confirm-dialog" id="confirm-dialog">
             <div class="confirm-title" id="confirm-title">Confirmation</div>

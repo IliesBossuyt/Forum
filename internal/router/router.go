@@ -10,24 +10,26 @@ import (
 	"time"
 )
 
+// Redirige les requêtes HTTP vers HTTPS
 func redirectToHTTPS(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
 }
 
+// Configure et lance le serveur web
 func Router() {
-	// Initialisation de la base de données
+	// Initialise la base de données
 	database.InitDatabase()
 
-	// Routeur principal de configuration des routes
+	// Crée le routeur principal
 	routeManager := http.NewServeMux()
 
-	// Middleware
+	// Middleware pour vérifier les rôles
 	requireRole := security.RequireRole
 
-	// Fichiers statiques
+	// Routes pour les fichiers statiques
 	routeManager.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../public/static"))))
 
-	// Guest routes
+	// Routes accessibles aux invités
 	guestRouter := http.NewServeMux()
 	guestRouter.HandleFunc("/home", handlers.Home)
 	guestRouter.HandleFunc("/image/", handlers.GetImage)
@@ -35,7 +37,7 @@ func Router() {
 		http.StripPrefix("/entry", handlers.WithNotFoundFallback(guestRouter)),
 	))
 
-	// Auth routes
+	// Routes d'authentification
 	authRouter := http.NewServeMux()
 	authRouter.Handle("/register", security.RateLimitRegisterByIP(http.HandlerFunc(handlers.Register)))
 	authRouter.Handle("/login", security.RateLimitLoginByIP(security.RateLimitLoginByIdentifier(http.HandlerFunc(handlers.Login))))
@@ -47,7 +49,7 @@ func Router() {
 	authRouter.HandleFunc("/github/callback", security.GitHubCallback)
 	routeManager.Handle("/auth/", http.StripPrefix("/auth", handlers.WithNotFoundFallback(authRouter)))
 
-	// User routes
+	// Routes utilisateur
 	userRouter := http.NewServeMux()
 	userRouter.HandleFunc("/profile/", handlers.Profile)
 	userRouter.Handle("/create-post", security.RateLimitCreatePost(http.HandlerFunc(handlers.CreatePost)))
@@ -65,9 +67,9 @@ func Router() {
 	userRouter.HandleFunc("/notifications/delete-all", handlers.DeleteAllNotifications)
 	routeManager.Handle("/user/", requireRole("user", "admin", "moderator")(http.StripPrefix("/user", userRouter)))
 
-	// Admin routes
+	// Routes administrateur
 	adminRouter := http.NewServeMux()
-	// Route dashboard (admin + moderateur)
+	// Routes accessibles aux administrateurs et modérateurs
 	adminRouter.HandleFunc("/dashboard", handlers.Dashboard)
 	adminRouter.HandleFunc("/delete-report-post", handlers.DeleteReportPost)
 	adminRouter.HandleFunc("/delete-report-comment", handlers.DeleteReportComment)
@@ -76,17 +78,17 @@ func Router() {
 	adminRouter.HandleFunc("/delete-post", handlers.DeletePost)
 	adminRouter.HandleFunc("/warns", handlers.GetUserWarns)
 
-	// Sous-routes sensibles (admin seul)
+	// Routes sensibles (administrateurs uniquement)
 	adminSecure := http.NewServeMux()
 	adminSecure.HandleFunc("/change-role", handlers.ChangeUserRole)
 	adminSecure.HandleFunc("/toggle-ban", security.ToggleBanUser)
 	adminSecure.HandleFunc("/delete-warn", handlers.DeleteWarn)
 
-	// On attache les deux avec les bons droits
+	// Attache les routes avec les bons niveaux d'accès
 	routeManager.Handle("/admin/", requireRole("admin", "moderator")(http.StripPrefix("/admin", handlers.WithNotFoundFallback(adminRouter))))
 	routeManager.Handle("/admin/secure/", requireRole("admin")(http.StripPrefix("/admin/secure", handlers.WithNotFoundFallback(adminSecure))))
 
-	// Handler final avec fallback 404
+	// Handler final avec gestion des erreurs 404
 	var secureHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler, pattern := routeManager.Handler(r)
 		if pattern == "" {
@@ -96,10 +98,10 @@ func Router() {
 		handler.ServeHTTP(w, r)
 	})
 
-	// Appliquer le rate limit global
+	// Applique le rate limiting global
 	secureHandler = security.RateLimitGlobal(secureHandler)
 
-	// Lancer le nettoyage périodique des sessions expirées
+	// Nettoie périodiquement les sessions expirées
 	go func() {
 		for {
 			models.CleanExpiredSessions()
@@ -107,7 +109,7 @@ func Router() {
 		}
 	}()
 
-	// Redirection HTTP → HTTPS
+	// Redirige le trafic HTTP vers HTTPS
 	go func() {
 		err := http.ListenAndServe(":8080", http.HandlerFunc(redirectToHTTPS))
 		if err != nil {
@@ -115,7 +117,7 @@ func Router() {
 		}
 	}()
 
-	// Lancement du serveur HTTPS
+	// Lance le serveur HTTPS
 	fmt.Println("Serveur HTTPS lancé sur https://localhost:8443")
 	err := http.ListenAndServeTLS(
 		":8443",

@@ -5,26 +5,27 @@ import (
 	"time"
 )
 
-// Ajouter ou modifier un like/dislike sur les posts
+// Gère l'ajout/suppression d'un like/dislike sur un post
 func ToggleLike(userID string, postID int, value int) (added bool, wasLike bool, err error) {
+	// Vérifie si l'utilisateur a déjà liké/disliké
 	var existingValue int
 	err = database.DB.QueryRow(
 		"SELECT value FROM likes WHERE user_id = ? AND post_id = ?", userID, postID,
 	).Scan(&existingValue)
 
 	if err == nil {
+		// Si même valeur, supprime le like/dislike
 		if existingValue == value {
-			// Même vote → suppression
 			_, err = database.DB.Exec("DELETE FROM likes WHERE user_id = ? AND post_id = ?", userID, postID)
 			return false, false, err
 		}
 
-		// Changement de vote
+		// Si valeur différente, met à jour
 		_, err = database.DB.Exec("UPDATE likes SET value = ? WHERE user_id = ? AND post_id = ?", value, userID, postID)
 		return true, value == 1, err
 	}
 
-	// Premier vote
+	// Ajoute un nouveau like/dislike
 	_, err = database.DB.Exec(
 		"INSERT INTO likes (user_id, post_id, value, created_at) VALUES (?, ?, ?, ?)",
 		userID, postID, value, time.Now(),
@@ -32,7 +33,7 @@ func ToggleLike(userID string, postID int, value int) (added bool, wasLike bool,
 	return true, value == 1, err
 }
 
-// Récupérer le nombre de likes et dislikes d'un post
+// Récupère le nombre de likes/dislikes d'un post
 func GetPostLikes(postID int) (int, int, error) {
 	var likes, dislikes int
 	err := database.DB.QueryRow(

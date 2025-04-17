@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// Récupérer l'image depuis la base
+// Gère la récupération et l'affichage des images des posts
 func GetImage(w http.ResponseWriter, r *http.Request) {
 	// Extraire l’ID depuis l’URL manuellement
-	path := r.URL.Path // ex: /image/5 ou /entry/image/5
+	path := r.URL.Path
 	segments := strings.Split(path, "/")
 	if len(segments) < 3 {
 		http.Error(w, "ID manquant dans l'URL", http.StatusBadRequest)
@@ -23,6 +23,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Récupère l'image depuis la base de données
 	imageData, err := models.GetPostImage(postID)
 	if err != nil {
 		http.Error(w, "Image introuvable", http.StatusNotFound)

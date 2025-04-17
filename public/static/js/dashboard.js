@@ -1,4 +1,4 @@
-// Fonction de gestion des notifications
+// Fonction pour afficher une notification
 function showNotification(message, type = 'success', duration = 5000) {
     const container = document.getElementById('notification-container');
     const notification = document.createElement('div');
@@ -14,12 +14,13 @@ function showNotification(message, type = 'success', duration = 5000) {
 
     container.appendChild(notification);
 
-    // Supprimer automatiquement après la durée spécifiée
+    // Supprime automatiquement la notification après la durée spécifiée
     setTimeout(() => {
         removeNotification(id);
     }, duration);
 }
 
+// Fonction pour supprimer une notification
 function removeNotification(id) {
     const notification = document.getElementById(id);
     if (!notification) return;
@@ -30,7 +31,7 @@ function removeNotification(id) {
     }, 300);
 }
 
-// Fonction de confirmation personnalisée
+// Fonction pour afficher une boîte de dialogue de confirmation
 function showConfirm(message, options = {}) {
     return new Promise((resolve) => {
         const overlay = document.getElementById('confirm-overlay');
@@ -40,7 +41,7 @@ function showConfirm(message, options = {}) {
         const okButton = document.getElementById('confirm-ok');
         const cancelButton = document.getElementById('confirm-cancel');
         
-        // Définir le type (danger, success, warning)
+        // Configure le style de la boîte de dialogue
         dialog.className = 'confirm-dialog';
         okButton.className = 'confirm-ok';
         
@@ -48,25 +49,23 @@ function showConfirm(message, options = {}) {
             dialog.classList.add(options.type);
             okButton.classList.add(options.type);
         } else {
-            dialog.classList.add('danger'); // Par défaut
+            dialog.classList.add('danger'); // Style par défaut
             okButton.classList.add('danger'); 
         }
         
-        // Définir titre et message
+        // Configure le contenu de la boîte de dialogue
         title.textContent = options.title || 'Confirmation';
         messageEl.textContent = message;
-        
-        // Définir texte des boutons
         okButton.textContent = options.okText || 'Confirmer';
         cancelButton.textContent = options.cancelText || 'Annuler';
         
-        // Afficher la boîte de dialogue
+        // Affiche la boîte de dialogue
         overlay.style.display = 'flex';
         setTimeout(() => {
             overlay.classList.add('confirm-visible');
         }, 10);
         
-        // Gestionnaires d'événements
+        // Gestionnaires d'événements pour les boutons
         function handleOk() {
             overlay.classList.remove('confirm-visible');
             setTimeout(() => {
@@ -92,7 +91,7 @@ function showConfirm(message, options = {}) {
     });
 }
 
-// Remplacer les alertes par notre système de notifications
+// Gestion des mises à jour de rôle
 document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".update-role-btn").forEach(button => {
         button.addEventListener("click", function () {
@@ -120,8 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-
-// Bannir / Débannir
+// Gestion du bannissement/débannissement
 document.querySelectorAll(".ban-toggle-btn").forEach(button => {
     button.addEventListener("click", function () {
         let userID = this.getAttribute("data-userid");
@@ -150,7 +148,7 @@ document.querySelectorAll(".ban-toggle-btn").forEach(button => {
     });
 });
 
-// Fonctions modales d'image inchangées
+// Fonctions pour la modale d'image
 function openModal(imageSrc) {
     let modal = document.getElementById("imageModal");
     let modalImg = document.getElementById("modalContent");
@@ -174,7 +172,7 @@ function closeModal() {
     }, 300);
 }
 
-// Supprimer un signalement
+// Gestion de la suppression des signalements
 document.querySelectorAll(".delete-report-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const reportIDString = button.getAttribute("data-reportid");
@@ -205,7 +203,7 @@ document.querySelectorAll(".delete-report-btn").forEach(button => {
     });
 });
 
-// Bannir l'auteur du post signalé
+// Gestion du bannissement des auteurs de posts signalés
 document.querySelectorAll(".ban-post-author-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const userID = button.getAttribute("data-userid");
@@ -235,7 +233,7 @@ document.querySelectorAll(".ban-post-author-btn").forEach(button => {
     });
 });
 
-// Supprimer un post signalé
+// Gestion de la suppression des posts signalés
 document.querySelectorAll(".delete-post-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const postID = parseInt(button.getAttribute("data-postid"), 10);
@@ -266,7 +264,7 @@ document.querySelectorAll(".delete-post-btn").forEach(button => {
     });
 });
 
-
+// Gestion des avertissements
 let currentWarnUserID = null;
 
 function closeWarnModal() {
@@ -275,10 +273,11 @@ function closeWarnModal() {
     document.getElementById("warnReason").value = "";
 }
 
-// Ouvre le casier
+// Vérifie si l'utilisateur est administrateur
 const userRole = document.body.dataset.userRole;
 const isAdmin = userRole === "admin";
 
+// Gestion de l'affichage du casier d'avertissements
 document.querySelectorAll(".warn-user-btn").forEach(button => {
     button.addEventListener("click", () => {
         const userID = button.getAttribute("data-userid");
@@ -329,10 +328,7 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
                             .then(resp => {
                                 if (resp.success) {
                                     showNotification("Warn supprimé !", "success");
-                                    // Supprimer le warn du DOM
                                     li.remove();
-
-                                    // Actualiser le compteur sans recharger tout
                                     const counterSpan = document.getElementById(`warn-count-${currentWarnUserID}`);
                                     let currentCount = parseInt(counterSpan.textContent.replace(/[^\d]/g, ""));
                                     if (!isNaN(currentCount) && currentCount > 0) {
@@ -354,7 +350,7 @@ document.querySelectorAll(".warn-user-btn").forEach(button => {
     });
 });
 
-
+// Gestion de l'ajout d'avertissements
 document.getElementById("addWarnBtn").addEventListener("click", () => {
     const reason = document.getElementById("warnReason").value.trim();
     if (!reason) {
@@ -379,8 +375,7 @@ document.getElementById("addWarnBtn").addEventListener("click", () => {
     });
 });
 
-
-// Supprimer un signalement de commentaire
+// Gestion de la suppression des signalements de commentaires
 document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const reportID = parseInt(button.getAttribute("data-reportid"), 10);
@@ -410,8 +405,7 @@ document.querySelectorAll(".delete-comment-report-btn").forEach(button => {
     });
 });
 
-
-// Bannir l'auteur du commentaire signalé
+// Gestion du bannissement des auteurs de commentaires signalés
 document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const userID = button.getAttribute("data-userid");
@@ -441,7 +435,7 @@ document.querySelectorAll(".ban-comment-author-btn").forEach(button => {
     });
 });
 
-// Supprimer un commentaire signalé
+// Gestion de la suppression des commentaires signalés
 document.querySelectorAll(".delete-comment-btn").forEach(button => {
     button.addEventListener("click", async () => {
         const commentID = parseInt(button.getAttribute("data-commentid"), 10);

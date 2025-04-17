@@ -3,25 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Liens vers les ressources externes -->
     <link rel="stylesheet" href="/static/css/register.css">
     <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
     <title>Inscription - Forum</title>
+    <!-- Police de caractères externe -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Conteneur principal de la page d'inscription -->
     <div class="register-container">
         <h2>Inscription</h2>
+        <!-- Formulaire d'inscription -->
         <form onsubmit="registerUser(event)">
+            <!-- Champ pour le nom d'utilisateur -->
             <div class="form-group">
                 <label for="username">Nom d'utilisateur</label>
                 <input type="text" id="username" placeholder="Choisissez un nom d'utilisateur" required>
             </div>
 
+            <!-- Champ pour l'email -->
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" placeholder="Entrez votre adresse email" required>
             </div>
 
+            <!-- Champ pour le mot de passe -->
             <div class="form-group">
                 <label for="password">Mot de passe</label>
                 <input type="password" id="password" placeholder="Créez un mot de passe" required>
@@ -30,8 +37,10 @@
             <button type="submit">S'inscrire</button>
         </form>
 
+        <!-- Zone d'affichage des messages d'erreur ou de succès -->
         <p id="message"></p>
         
+        <!-- Lien vers la page de connexion -->
         <div class="login-link">
             Déjà inscrit ? <a href="/auth/login">Se connecter</a>
         </div>

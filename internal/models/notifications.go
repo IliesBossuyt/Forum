@@ -5,19 +5,21 @@ import (
 	"time"
 )
 
+// Structure d'une notification
 type Notification struct {
-	ID             int
-	RecipientID    string
-	SenderID       string
-	SenderUsername string
-	Type           string
-	PostID         *int
-	CommentID      *int
-	Message        string
-	Seen           bool
-	CreatedAt      time.Time
+	ID             int       // Identifiant unique
+	RecipientID    string    // ID du destinataire
+	SenderID       string    // ID de l'émetteur
+	SenderUsername string    // Nom de l'émetteur
+	Type           string    // Type de notification
+	PostID         *int      // ID du post concerné
+	CommentID      *int      // ID du commentaire concerné
+	Message        string    // Message de la notification
+	Seen           bool      // État de lecture
+	CreatedAt      time.Time // Date de création
 }
 
+// Crée une nouvelle notification
 func CreateNotification(n Notification) error {
 	_, err := database.DB.Exec(`
         INSERT INTO notifications (recipient_id, sender_id, type, post_id, comment_id, message, created_at)
@@ -26,7 +28,9 @@ func CreateNotification(n Notification) error {
 	return err
 }
 
+// Récupère les notifications d'un utilisateur
 func GetNotificationsByUser(userID string) ([]Notification, error) {
+	// Requête pour obtenir les notifications avec les infos de l'émetteur
 	rows, err := database.DB.Query(`
         SELECT n.id, n.recipient_id, n.sender_id, u.username, n.type,
                n.post_id, n.comment_id, n.seen, n.created_at
@@ -39,6 +43,7 @@ func GetNotificationsByUser(userID string) ([]Notification, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var notifs []Notification
 	for rows.Next() {
 		var n Notification
@@ -53,7 +58,7 @@ func GetNotificationsByUser(userID string) ([]Notification, error) {
 		n.PostID = postID
 		n.CommentID = commentID
 
-		// Construire dynamiquement le message
+		// Construit le message selon le type
 		switch n.Type {
 		case "like_post":
 			n.Message = n.SenderUsername + " a liké votre post."
@@ -77,11 +82,13 @@ func GetNotificationsByUser(userID string) ([]Notification, error) {
 	return notifs, nil
 }
 
+// Marque toutes les notifications comme lues
 func MarkNotificationsAsSeen(userID string) error {
 	_, err := database.DB.Exec("UPDATE notifications SET seen = TRUE WHERE recipient_id = ?", userID)
 	return err
 }
 
+// Supprime toutes les notifications d'un utilisateur
 func DeleteAllNotificationsForUser(userID string) error {
 	_, err := database.DB.Exec("DELETE FROM notifications WHERE recipient_id = ?", userID)
 	return err

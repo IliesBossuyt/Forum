@@ -3,59 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Liens vers les ressources externes -->
     <link rel="stylesheet" href="/static/css/profile.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="/static/image/cinewatch.png" type="image/png">
     <title>Profil - {{.User.Username}}</title>
 </head>
 <body>
+    <!-- Conteneur principal de la page de profil -->
     <div class="profile-container">
-        <!-- Logo en haut à gauche -->
+        <!-- Logo du site avec lien vers l'accueil -->
         <div class="site-logo">
             <a href="/entry/home">
                 <img src="/static/image/cinewatch.png" alt="Logo du site" width="120">
             </a>
         </div>
         
+        <!-- En-tête du profil -->
         <div class="profile-header">
             <h2>Profil de {{.User.Username}}</h2>
         </div>
 
+        <!-- Section d'informations du profil -->
         <div class="profile-info">
+            <!-- Informations de base -->
             <p><strong>Nom d'utilisateur :</strong> <span id="display-username">{{.User.Username}}</span></p>
+            <!-- Email visible uniquement pour le propriétaire -->
             {{if .IsOwner}}
             <p><strong>Email :</strong> <span id="display-email">{{.User.Email}}</span></p>
             {{end}}
             <p><strong>Rôle :</strong> {{.User.Role}}</p>
+            <!-- Message de profil privé -->
             {{if not (or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator")))}}
             <p><strong>Statut :</strong> Ce profil est privé.</p>
             {{end}}
         </div>
 
+        <!-- Section de modification du profil (visible uniquement pour le propriétaire) -->
         {{if .IsOwner}}
         <div class="edit-section">
             <h3>Modifier mon profil</h3>
+            <!-- Formulaire de modification -->
             <form id="profile-form">
+                <!-- Champ de modification du nom d'utilisateur -->
                 <div>
                     <label for="username">Nom d'utilisateur :</label>
                     <input type="text" id="username" value="{{.User.Username}}" required>
                 </div>
                 
+                <!-- Champ de modification de l'email -->
                 <div>
                     <label for="email">Email :</label>
                     <input type="email" id="email" value="{{.User.Email}}" required>
                 </div>
                 
+                <!-- Champ de l'ancien mot de passe -->
                 <div>
                     <label for="old-password">Ancien mot de passe :</label>
                     <input type="password" id="old-password">
                 </div>
                 
+                <!-- Champ du nouveau mot de passe -->
                 <div>
                     <label for="new-password">Nouveau mot de passe :</label>
                     <input type="password" id="new-password">
                 </div>
 
+                <!-- Option de visibilité du profil -->
                 <div>
                     <label for="is-public">
                         <input type="checkbox" id="is-public" {{if .User.IsPublic}}checked{{end}}>
@@ -66,19 +80,23 @@
                 <button type="submit">Enregistrer les modifications</button>
             </form>
             
+            <!-- Messages de succès et d'erreur -->
             <p id="success-message" style="display:none;">Mise à jour réussie !</p>
             <p id="error-message" style="display:none;"></p>
             
+            <!-- Bouton de déconnexion -->
             <a href="/auth/logout" class="logout-btn">Se déconnecter</a>
             
+            <!-- Bouton pour afficher les avertissements -->
             <button id="openWarnBtn">
                 Voir mes avertissements (<span id="warnCount">{{len .User.Warns}}</span>)
             </button>
             
-            <!-- Modale du casier -->
+            <!-- Modale d'affichage des avertissements -->
             <div id="warnModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); z-index:999;">
                 <h3>Mes avertissements</h3>
                 <ul id="warnList">
+                    <!-- Liste des avertissements -->
                     {{range .User.Warns}}
                     <li>
                         <div><strong>Modérateur :</strong> {{.Issuer}}</div>
@@ -92,12 +110,15 @@
         </div>
         {{end}}
 
+        <!-- Section d'activité (visible si profil public ou pour le propriétaire/modo/admin) -->
         {{if or .User.IsPublic .IsOwner (or (eq .CurrentRole "admin") (eq .CurrentRole "moderator"))}}
         <div class="activity-section">
             <h3>Activité de l'utilisateur</h3>
             <ul class="activity-list">
-            {{range .Activities}}
+                <!-- Liste des activités -->
+                {{range .Activities}}
                 <li>
+                    <!-- Différents types d'activités avec leurs icônes -->
                     {{if eq .Type "post"}}📝 Nouveau post : {{.Content}}
                     {{else if eq .Type "comment"}}💬 Commentaire : {{.Content}} (sur le post : "{{.Target}}")
                     {{else if eq .Type "like_post"}}👍 A liké un post : "{{.Target}}"
@@ -107,7 +128,7 @@
                     {{end}}
                     <small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small>
                 </li>
-            {{end}}
+                {{end}}
             </ul>
         </div>
         {{end}}

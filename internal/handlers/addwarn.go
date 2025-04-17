@@ -7,12 +7,14 @@ import (
 	"net/http"
 )
 
+// Ajoute un avertissement à un utilisateur
 func AddWarn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Récupère l'ID de l'utilisateur à avertir et la raison
 	var input struct {
 		UserID string `json:"user_id"`
 		Reason string `json:"reason"`
@@ -22,15 +24,17 @@ func AddWarn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Récupère l'ID de l'utilisateur qui émet l'avertissement
 	issuedBy := r.Context().Value(security.ContextUserIDKey).(string)
 
+	// Ajoute l'avertissement dans la base de données
 	err := models.AddWarn(input.UserID, issuedBy, input.Reason)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'ajout du warn", http.StatusInternalServerError)
 		return
 	}
 
-	// Notification pour l'utilisateur averti
+	// Crée une notification
 	if input.UserID != issuedBy {
 		_ = models.CreateNotification(models.Notification{
 			RecipientID: input.UserID,
@@ -39,6 +43,7 @@ func AddWarn(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Retourne le nouveau nombre total d'avertissements
 	warns, _ := models.GetWarnsByUserID(input.UserID)
 	count := len(warns)
 

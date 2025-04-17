@@ -7,14 +7,18 @@ import (
 	"net/http"
 )
 
+// Gère la modification d'un commentaire
 func EditComment(w http.ResponseWriter, r *http.Request) {
+	// Vérifie que la méthode est POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Récupère l'ID de l'utilisateur
 	userID := r.Context().Value(security.ContextUserIDKey).(string)
 
+	// Décode le contenu et l'ID du commentaire depuis le JSON
 	var input struct {
 		CommentID int    `json:"comment_id"`
 		Content   string `json:"content"`
@@ -25,7 +29,7 @@ func EditComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification d’auteur
+	// Vérifie si l'utilisateur est l'auteur du commentaire
 	authorID, err := models.GetCommentAuthorID(input.CommentID)
 	if err != nil {
 		http.Error(w, "Erreur", http.StatusInternalServerError)
@@ -37,13 +41,14 @@ func EditComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mise à jour
+	// Met à jour le contenu du commentaire
 	err = models.UpdateCommentContent(input.CommentID, input.Content)
 	if err != nil {
 		http.Error(w, "Erreur lors de la modification", http.StatusInternalServerError)
 		return
 	}
 
+	// Retourne la confirmation de modification
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 	})

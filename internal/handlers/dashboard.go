@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// Structure de données pour affichage
+// Données nécessaires pour le dashboard
 type DashboardData struct {
 	Users           []models.User
 	Reports         []models.Report
@@ -17,9 +17,10 @@ type DashboardData struct {
 	CurrentUserRole string
 }
 
+// Affiche le dashboard
 func Dashboard(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		// Récupération des utilisateurs
+		// Récupère tous les utilisateurs
 		rows, err := database.DB.Query("SELECT id, username, role, banned FROM users")
 		if err != nil {
 			http.Error(w, "Erreur serveur (utilisateurs)", http.StatusInternalServerError)
@@ -37,40 +38,41 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 			users = append(users, u)
 		}
 
-		// Récupération des commentaires signalés
+		// Récupère les signalements de commentaires
 		commentReports, err := models.GetAllCommentReports()
 		if err != nil {
 			http.Error(w, "Erreur serveur (signalements commentaires)", http.StatusInternalServerError)
 			return
 		}
 
-		// Récupération des posts signalés
+		// Récupère les signalements de posts
 		reports, err := models.GetAllReports()
 		if err != nil {
 			http.Error(w, "Erreur serveur (signalements)", http.StatusInternalServerError)
 			return
 		}
 
-		// Récupération des posts (pour obtenir l'auteur via PostID)
+		// Récupère les posts pour lier les auteurs
 		posts, err := models.GetAllPosts()
 		if err != nil {
 			http.Error(w, "Erreur serveur (posts)", http.StatusInternalServerError)
 			return
 		}
 
-		// Création d'une map PostID -> UserID
+		// Crée une map pour lier les posts à leurs auteurs
 		postAuthorMap := make(map[int]string)
 		for _, post := range posts {
 			postAuthorMap[post.ID] = post.UserID
 		}
 
-		// Injection dynamique du PostAuthorID dans chaque report
+		// Ajoute l'ID de l'auteur à chaque signalement
 		for i := range reports {
 			if authorID, ok := postAuthorMap[reports[i].PostID]; ok {
 				reports[i].PostAuthorID = authorID
 			}
 		}
 
+		// Récupère et compte les avertissements
 		warns, err := models.GetAllWarns()
 		if err != nil {
 			http.Error(w, "Erreur récupération des warns", http.StatusInternalServerError)
@@ -82,7 +84,7 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 			warnCounts[warn.UserID]++
 		}
 
-		// Template
+		// Charge et exécute le template
 		tmpl, err := template.ParseFiles("../public/template/dashboard.html")
 		if err != nil {
 			http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)

@@ -11,46 +11,43 @@ import (
 	"Forum/internal/database"
 )
 
-// Structure User
+// Structure d'un utilisateur
 type User struct {
-	ID       string
-	Username string
-	Email    string
-	Password sql.NullString // Peut être NULL
-	Role     string
-	GoogleID sql.NullString // Peut être NULL
-	GitHubID sql.NullString
-	Provider sql.NullString // Peut être NULL
-	Banned   bool
-	IsPublic bool
-
-	Warns []Warn
+	ID       string         // Identifiant unique
+	Username string         // Nom d'utilisateur
+	Email    string         // Adresse email
+	Password sql.NullString // Mot de passe (peut être NULL)
+	Role     string         // Rôle de l'utilisateur
+	GoogleID sql.NullString // ID Google (peut être NULL)
+	GitHubID sql.NullString // ID GitHub
+	Provider sql.NullString // Fournisseur d'authentification (peut être NULL)
+	Banned   bool           // Statut de bannissement
+	IsPublic bool           // Visibilité du profil
+	Warns    []Warn         // Liste des avertissements
 }
 
-// Fonction pour créer un utilisateur
+// Crée un nouvel utilisateur
 func CreateUser(username, email, password string) error {
-	// Générer un UUID
+	// Génère un UUID unique
 	id := uuid.New().String()
 
-	// Hasher le mot de passe avec bcrypt
+	// Hash le mot de passe
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	// Insérer l'utilisateur en base
+	// Insère l'utilisateur en base
 	_, err = database.DB.Exec("INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)", id, username, email, string(hashedPassword), "user")
 
 	if err != nil {
 		log.Println("Erreur lors de l'insertion de l'utilisateur :", err)
 		return err
 	}
-
-	log.Println("Utilisateur ajouté :", username)
 	return nil
 }
 
-// Trouver un utilisateur par email
+// Récupère un utilisateur par email
 func GetUserByEmail(email string) (*User, error) {
 	var user User
 
@@ -59,7 +56,7 @@ func GetUserByEmail(email string) (*User, error) {
 	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.GoogleID, &user.Provider, &user.GitHubID, &user.Banned, &user.IsPublic)
 
 	if err == sql.ErrNoRows {
-		return nil, nil // Aucun utilisateur trouvé
+		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
@@ -69,7 +66,7 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// Récupérer un utilisateur par ID
+// Récupère un utilisateur par ID
 func GetUserByID(userID string) (*User, error) {
 	var user User
 
@@ -88,6 +85,7 @@ func GetUserByID(userID string) (*User, error) {
 	return &user, nil
 }
 
+// Récupère un utilisateur par nom d'utilisateur
 func GetUserByUsername(username string) (*User, error) {
 	var user User
 
@@ -106,6 +104,7 @@ func GetUserByUsername(username string) (*User, error) {
 	return &user, nil
 }
 
+// Récupère un utilisateur par email ou nom d'utilisateur
 func GetUserByIdentifier(identifier string) (*User, error) {
 	var user User
 
@@ -125,7 +124,7 @@ func GetUserByIdentifier(identifier string) (*User, error) {
 	return &user, nil
 }
 
-// Modifier le profil utilisateur
+// Met à jour le profil d'un utilisateur
 func UpdateUserProfile(userID, username, email, password string, isPublic bool) error {
 	_, err := database.DB.Exec(`
 		UPDATE users SET username = ?, email = ?, password = ?, is_public = ? WHERE id = ?
@@ -133,8 +132,9 @@ func UpdateUserProfile(userID, username, email, password string, isPublic bool) 
 	return err
 }
 
+// Crée un utilisateur Google
 func CreateGoogleUser(username, email, googleID string) error {
-	// Générer un UUID pour l'utilisateur
+	// Génère un UUID unique
 	id := uuid.New().String()
 
 	_, err := database.DB.Exec(`
@@ -144,8 +144,9 @@ func CreateGoogleUser(username, email, googleID string) error {
 	return err
 }
 
+// Crée un utilisateur GitHub
 func CreateGitHubUser(username, email, githubID string) error {
-	// Générer un UUID pour l'utilisateur
+	// Génère un UUID unique
 	id := uuid.New().String()
 
 	_, err := database.DB.Exec(`
@@ -155,6 +156,7 @@ func CreateGitHubUser(username, email, githubID string) error {
 	return err
 }
 
+// Normalise les champs NULL de l'utilisateur
 func (u *User) Normalize() {
 	if !u.Password.Valid {
 		u.Password.String = ""
@@ -167,14 +169,17 @@ func (u *User) Normalize() {
 	}
 }
 
+// Structure d'une activité utilisateur
 type Activity struct {
-	Type      string
-	Content   string
-	Target    string
-	CreatedAt time.Time
+	Type      string    // Type d'activité
+	Content   string    // Contenu de l'activité
+	Target    string    // Cible de l'activité
+	CreatedAt time.Time // Date de création
 }
 
+// Récupère les activités d'un utilisateur
 func GetUserActivity(userID string) ([]Activity, error) {
+	// Requête pour obtenir toutes les activités
 	rows, err := database.DB.Query(`
 		SELECT 'post' AS type, content, NULL AS target, created_at
 		FROM posts
@@ -222,6 +227,7 @@ func GetUserActivity(userID string) ([]Activity, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var activities []Activity
 	for rows.Next() {
 		var a Activity
@@ -235,7 +241,7 @@ func GetUserActivity(userID string) ([]Activity, error) {
 		if rawTarget.Valid {
 			a.Target = rawTarget.String
 		} else {
-			a.Target = "(contenu supprimé)" // ou juste "", comme tu préfères
+			a.Target = "(contenu supprimé)"
 		}
 
 		activities = append(activities, a)

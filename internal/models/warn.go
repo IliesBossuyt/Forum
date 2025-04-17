@@ -5,15 +5,17 @@ import (
 	"time"
 )
 
+// Structure d'un avertissement
 type Warn struct {
-	ID        int
-	UserID    string
-	IssuedBy  string
-	Issuer    string
-	Reason    string
-	CreatedAt time.Time
+	ID        int       // Identifiant unique
+	UserID    string    // ID de l'utilisateur averti
+	IssuedBy  string    // ID de l'administrateur qui a émis l'avertissement
+	Issuer    string    // Nom de l'administrateur qui a émis l'avertissement
+	Reason    string    // Raison de l'avertissement
+	CreatedAt time.Time // Date de création
 }
 
+// Ajoute un avertissement à un utilisateur
 func AddWarn(userID string, issuedBy string, reason string) error {
 	_, err := database.DB.Exec(`
         INSERT INTO warns (user_id, issued_by, reason, created_at)
@@ -21,7 +23,9 @@ func AddWarn(userID string, issuedBy string, reason string) error {
 	return err
 }
 
+// Récupère tous les avertissements d'un utilisateur
 func GetWarnsByUserID(userID string) ([]Warn, error) {
+	// Requête pour obtenir les avertissements avec le nom de l'administrateur
 	rows, err := database.DB.Query(`
         SELECT w.id, w.user_id, w.issued_by, u.username AS issuer, w.reason, w.created_at
         FROM warns w
@@ -33,6 +37,7 @@ func GetWarnsByUserID(userID string) ([]Warn, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var warns []Warn
 	for rows.Next() {
 		var w Warn
@@ -44,7 +49,9 @@ func GetWarnsByUserID(userID string) ([]Warn, error) {
 	return warns, nil
 }
 
+// Récupère tous les avertissements
 func GetAllWarns() ([]Warn, error) {
+	// Requête pour obtenir tous les avertissements avec le nom des administrateurs
 	rows, err := database.DB.Query(`
         SELECT w.id, w.user_id, w.issued_by, u.username AS issuer, w.reason, w.created_at
         FROM warns w
@@ -55,6 +62,7 @@ func GetAllWarns() ([]Warn, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var warns []Warn
 	for rows.Next() {
 		var w Warn
@@ -66,6 +74,7 @@ func GetAllWarns() ([]Warn, error) {
 	return warns, nil
 }
 
+// Supprime un avertissement par son ID
 func DeleteWarnByID(warnID int) error {
 	_, err := database.DB.Exec("DELETE FROM warns WHERE id = ?", warnID)
 	return err

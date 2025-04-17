@@ -13,33 +13,38 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Gestion de la page profil (Affichage et Modification)
+// Gère l'affichage et la modification du profil utilisateur
 func Profile(w http.ResponseWriter, r *http.Request) {
+	// Récupère le nom d'utilisateur depuis l'URL
 	username := strings.TrimPrefix(r.URL.Path, "/profile/")
 	username = strings.Trim(username, "/")
 
+	// Récupère les informations de l'utilisateur
 	user, err := models.GetUserByUsername(username)
 	if err != nil || user == nil {
 		http.Error(w, "Utilisateur introuvable", http.StatusNotFound)
 		return
 	}
 
+	// Récupère l'ID de l'utilisateur actuel
 	var currentUserID string
 	if ctxUserID := r.Context().Value(security.ContextUserIDKey); ctxUserID != nil {
 		currentUserID = ctxUserID.(string)
 	}
 
+	// Récupère le rôle de l'utilisateur actuel
 	role := ""
 	if r.Context().Value(security.ContextRoleKey) != nil {
 		role = r.Context().Value(security.ContextRoleKey).(string)
 	}
 
-
 	isOwner := currentUserID == user.ID
 
 	var activities []models.Activity
 
+	// Gestion de la requête GET (affichage du profil)
 	if r.Method == http.MethodGet {
+		// Charge les avertissements si l'utilisateur est le propriétaire
 		if isOwner {
 			user.Warns, err = models.GetWarnsByUserID(user.ID)
 			if err != nil {
@@ -47,6 +52,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Charge les activités si le profil est public ou si l'utilisateur a les droits
 		if user.IsPublic || isOwner || role == "admin" || role == "moderator" {
 			activities, err = models.GetUserActivity(user.ID)
 			if err != nil {
@@ -54,7 +60,7 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Affichage du profil
+		// Affiche le template du profil
 		tmpl, err := template.ParseFiles("../public/template/profile.html")
 		if err != nil {
 			http.Error(w, "Erreur de chargement du template", http.StatusInternalServerError)
@@ -75,8 +81,9 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Traitement de la modification (autorisé seulement pour le propriétaire)
+	// Gestion de la requête POST (modification du profil)
 	if r.Method == http.MethodPost && isOwner {
+		// Structure pour décoder les données de modification
 		var input struct {
 			Username    string `json:"username"`
 			Email       string `json:"email"`
@@ -85,49 +92,50 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			IsPublic    bool   `json:"is_public"`
 		}
 
+		// Décode les données de la requête
 		err := json.NewDecoder(r.Body).Decode(&input)
 		if err != nil {
 			http.Error(w, "Données invalides", http.StatusBadRequest)
 			return
 		}
 
-		// Vérifier si l'utilisateur s'est connecté avec Google
+		// Vérifie si l'utilisateur s'est connecté avec un service externe
 		if user.Provider.Valid && user.Provider.String == "google" || user.Provider.Valid && user.Provider.String == "github" {
 			http.Error(w, "Modification des informations impossible pour les comptes Google ou Github", http.StatusForbidden)
 			return
 		}
 
-		// Vérifier si le nouvel email est déjà utilisé
+		// Vérifie si le nouvel email est déjà utilisé
 		existingUser, _ := models.GetUserByEmail(input.Email)
 		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Cet email est déjà utilisé", http.StatusBadRequest)
 			return
 		}
 
-		// Vérifier si le nouvel username est déjà utilisé
+		// Vérifie si le nouvel username est déjà utilisé
 		existingUser, _ = models.GetUserByUsername(input.Username)
 		if existingUser != nil && existingUser.ID != user.ID {
 			http.Error(w, "Ce nom d'utilisateur est déjà pris", http.StatusBadRequest)
 			return
 		}
 
-		// Vérifier si l'utilisateur change son mot de passe
+		// Gestion du changement de mot de passe
 		var hashedPassword string
 		if input.NewPassword != "" {
-			// Vérifier si l'utilisateur a un mot de passe défini (pour éviter les NULL venant de Google)
+			// Vérifie si l'utilisateur a un mot de passe défini
 			if !user.Password.Valid || user.Password.String == "" {
 				http.Error(w, "Aucun mot de passe défini, modification impossible", http.StatusUnauthorized)
 				return
 			}
 
-			// Vérifier l'ancien mot de passe
+			// Vérifie l'ancien mot de passe
 			err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(input.OldPassword))
 			if err != nil {
 				http.Error(w, "Ancien mot de passe incorrect", http.StatusUnauthorized)
 				return
 			}
 
-			// Hasher le nouveau mot de passe
+			// Hash le nouveau mot de passe
 			hashedPasswordBytes, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
 			if err != nil {
 				http.Error(w, "Erreur lors du hash du mot de passe", http.StatusInternalServerError)
@@ -135,17 +143,17 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 			}
 			hashedPassword = string(hashedPasswordBytes)
 		} else {
-			hashedPassword = user.Password.String // Garder l'ancien mot de passe si non modifié
+			hashedPassword = user.Password.String // Garde l'ancien mot de passe si non modifié
 		}
 
-		// Mettre à jour le profil
+		// Met à jour le profil
 		err = models.UpdateUserProfile(user.ID, input.Username, input.Email, hashedPassword, input.IsPublic)
 		if err != nil {
 			http.Error(w, "Erreur lors de la mise à jour du profil", http.StatusInternalServerError)
 			return
 		}
 
-		// Répondre avec succès
+		// Répond avec succès
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Profil mis à jour avec succès"))
 	}

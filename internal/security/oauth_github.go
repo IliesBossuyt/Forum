@@ -14,20 +14,22 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
+// Configuration OAuth pour GitHub
 var githubOAuthConfig *oauth2.Config
 
+// Initialisation de la configuration OAuth au démarrage
 func init() {
-	// Charger le fichier .env
+	// Charge les variables d'environnement depuis le fichier .env
 	err := godotenv.Load("../.env")
 	if err != nil {
 		fmt.Println("Erreur de chargement du fichier .env :", err)
 	}
 
-	// Lire les valeurs du .env
+	// Récupère les identifiants OAuth depuis les variables d'environnement
 	clientID := os.Getenv("GITHUB_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_CLIENT_SECRET")
 
-	// Initialisation de la configuration OAuth
+	// Configure les paramètres OAuth pour GitHub
 	githubOAuthConfig = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -37,36 +39,37 @@ func init() {
 	}
 }
 
-// Redirection vers GitHub pour authentification
+// Redirige l'utilisateur vers la page d'authentification GitHub
 func GitHubLogin(w http.ResponseWriter, r *http.Request) {
 	url := githubOAuthConfig.AuthCodeURL("randomstate", oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-// Structure pour stocker la réponse de GitHub
+// Structure pour stocker les informations de l'utilisateur GitHub
 type GitHubUser struct {
-	Login string `json:"login"` // Pseudo GitHub
-	Name  string `json:"name"`  // Nom complet (peut être vide)
-	Email string `json:"email"` // Email
+	Login string `json:"login"` // Nom d'utilisateur GitHub
+	Name  string `json:"name"`  // Nom complet
+	Email string `json:"email"` // Email principal
 	ID    int    `json:"id"`    // ID unique GitHub
 }
 
-// Callback après connexion GitHub
+// Gère le callback après l'authentification GitHub
 func GitHubCallback(w http.ResponseWriter, r *http.Request) {
+	// Récupère le code d'autorisation
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "Code de connexion manquant", http.StatusBadRequest)
 		return
 	}
 
-	// Échanger le code contre un token d'accès
+	// Échange le code contre un token d'accès
 	token, err := githubOAuthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, "Erreur lors de l'échange du token GitHub", http.StatusInternalServerError)
 		return
 	}
 
-	// Récupérer les infos utilisateur depuis l'API GitHub
+	// Récupère les informations de l'utilisateur depuis l'API GitHub
 	client := githubOAuthConfig.Client(r.Context(), token)
 	resp, err := client.Get("https://api.github.com/user")
 	if err != nil {
@@ -75,7 +78,7 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Lire la réponse JSON
+	// Décode les informations de l'utilisateur
 	var githubUser GitHubUser
 	err = json.NewDecoder(resp.Body).Decode(&githubUser)
 	if err != nil {
@@ -83,16 +86,16 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Si `name` est vide, utiliser `login` comme nom
+	// Utilise le login comme nom d'utilisateur si le nom est vide
 	username := githubUser.Name
 	if username == "" {
 		username = githubUser.Login
 	}
 
-	// Nettoyer le username (supprimer les espaces)
+	// Nettoie le nom d'utilisateur (supprime les espaces)
 	username = strings.ReplaceAll(username, " ", "")
 
-	// Vérifier si l'email est vide et récupérer l'email principal si nécessaire
+	// Récupère l'email principal si nécessaire
 	if githubUser.Email == "" {
 		respEmails, err := client.Get("https://api.github.com/user/emails")
 		if err != nil {
@@ -101,7 +104,7 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		defer respEmails.Body.Close()
 
-		// Lire les emails disponibles
+		// Structure pour les emails GitHub
 		var emails []struct {
 			Email    string `json:"email"`
 			Primary  bool   `json:"primary"`
@@ -113,7 +116,7 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Sélectionner l'email principal et vérifié
+		// Sélectionne l'email principal vérifié
 		for _, e := range emails {
 			if e.Primary && e.Verified {
 				githubUser.Email = e.Email
@@ -122,14 +125,14 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Vérifier si l'utilisateur existe déjà en base
+	// Vérifie si l'utilisateur existe déjà
 	user, err := models.GetUserByEmail(githubUser.Email)
 	if err != nil {
 		http.Error(w, "Erreur interne", http.StatusInternalServerError)
 		return
 	}
 
-	// Si l'utilisateur n'existe pas, le créer
+	// Crée un nouvel utilisateur si nécessaire
 	if user == nil {
 		err = models.CreateGitHubUser(username, githubUser.Email, fmt.Sprint(githubUser.ID))
 		if err != nil {
@@ -137,21 +140,21 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Récupérer l'utilisateur après l'insertion
+		// Récupère l'utilisateur après création
 		user, err = models.GetUserByEmail(githubUser.Email)
 		if err != nil || user == nil {
 			return
 		}
 	}
 
-	// Créer le cookie et rediriger
+	// Crée la session et redirige
 	err = CreateCookie(w, r, user.ID, user.Role)
 	if err != nil {
 		http.Error(w, "Erreur lors de la création du cookie", http.StatusInternalServerError)
 		return
 	}
 
-	// Redirection vers le profil public du user
+	// Redirige vers la page d'accueil
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, `
 		<script>
@@ -162,5 +165,5 @@ func GitHubCallback(w http.ResponseWriter, r *http.Request) {
 				window.location.href = "/entry/home";
 			}
 		</script>
-	`,)
+	`)
 }

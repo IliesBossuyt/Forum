@@ -1,0 +1,90 @@
+.
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+├── internal
+│   ├── database
+│   │   ├── database.go
+│   │   └── dump.sql
+│   ├── handlers
+│   │   ├── addwarn.go
+│   │   ├── changerole.go
+│   │   ├── dashboard.go
+│   │   ├── deletecomment.go
+│   │   ├── deletepost.go
+│   │   ├── deletereportcomment.go
+│   │   ├── deletereportpost.go
+│   │   ├── deletewarn.go
+│   │   ├── editcomment.go
+│   │   ├── editpost.go
+│   │   ├── home.go
+│   │   ├── images.go
+│   │   ├── likecomment.go
+│   │   ├── likespost.go
+│   │   ├── login.go
+│   │   ├── notfound.go
+│   │   ├── notifications.go
+│   │   ├── postcomment.go
+│   │   ├── post.go
+│   │   ├── profile.go
+│   │   ├── register.go
+│   │   ├── reportcomment.go
+│   │   ├── reportpost.go
+│   │   ├── unauthorized.go
+│   │   └── warn.go
+│   ├── models
+│   │   ├── category.go
+│   │   ├── comment.go
+│   │   ├── likecomment.go
+│   │   ├── likespost.go
+│   │   ├── notifications.go
+│   │   ├── post.go
+│   │   ├── reportcomment.go
+│   │   ├── reportpost.go
+│   │   ├── session.go
+│   │   ├── user.go
+│   │   └── warn.go
+│   ├── router
+│   │   └── router.go
+│   └── security
+│       ├── admin.go
+│       ├── cookie.go
+│       ├── middleware.go
+│       ├── oauth_github.go
+│       └── oauth_google.go
+├── main
+│   ├── certs
+│   │   ├── localhost.crt
+│   │   ├── localhost.csr
+│   │   ├── localhost.key
+│   │   ├── localhost.key.org
+│   │   └── v3.ext
+│   └── main.go
+├── public
+│   ├── static
+│   │   ├── css
+│   │   │   ├── dashboard.css
+│   │   │   ├── home.css
+│   │   │   ├── login.css
+│   │   │   ├── profile.css
+│   │   │   └── register.css
+│   │   ├── image
+│   │   │   └── cinewatch.png
+│   │   └── js
+│   │       ├── dashboard.js
+│   │       ├── home.js
+│   │       ├── login.js
+│   │       ├── profile.js
+│   │       └── register.js
+│   └── template
+│       ├── dashboard.html
+│       ├── home.html
+│       ├── login.html
+│       ├── notfound.html
+│       ├── profile.html
+│       ├── register.html
+│       └── unauthorized.html
+├── README.md
+└── structure.txt
+
+15 directories, 73 files

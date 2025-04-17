@@ -5,19 +5,22 @@ import (
 	"time"
 )
 
+// Structure d'un commentaire
 type Comment struct {
-	ID            int
-	PostID        int
-	UserID        string
-	Username      string
-	Content       string
-	CreatedAt     string
-	Likes         int
-	Dislikes      int
-	CurrentUserID string
+	ID            int    // Identifiant unique
+	PostID        int    // ID du post associé
+	UserID        string // ID de l'auteur
+	Username      string // Nom de l'auteur
+	Content       string // Contenu du commentaire
+	CreatedAt     string // Date de création
+	Likes         int    // Nombre de likes
+	Dislikes      int    // Nombre de dislikes
+	CurrentUserID string // ID de l'utilisateur actuel
 }
 
+// Récupère les commentaires d'un post
 func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
+	// Requête SQL pour récupérer les commentaires avec leurs likes/dislikes
 	rows, err := database.DB.Query(`
 		SELECT 
 			c.id, 
@@ -40,6 +43,7 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	}
 	defer rows.Close()
 
+	// Parcourt et formate les résultats
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
@@ -60,7 +64,9 @@ func GetCommentsByPostID(postID int, currentUserID string) ([]Comment, error) {
 	return comments, nil
 }
 
+// Crée un nouveau commentaire
 func CreateComment(postID int, userID, content string) (int64, time.Time, error) {
+	// Insère le commentaire dans la base
 	result, err := database.DB.Exec(`
 		INSERT INTO comments (post_id, author_id, content, created_at)
 		VALUES (?, ?, ?, ?)`,
@@ -69,6 +75,7 @@ func CreateComment(postID int, userID, content string) (int64, time.Time, error)
 		return 0, time.Time{}, err
 	}
 
+	// Récupère l'ID du commentaire créé
 	lastID, err := result.LastInsertId()
 	if err != nil {
 		return 0, time.Time{}, err
@@ -77,33 +84,37 @@ func CreateComment(postID int, userID, content string) (int64, time.Time, error)
 	return lastID, time.Now(), nil
 }
 
+// Supprime un commentaire et ses données associées
 func DeleteComment(commentID int) error {
-	// Supprimer les likes
+	// Supprime les likes du commentaire
 	if _, err := database.DB.Exec("DELETE FROM comment_likes WHERE comment_id = ?", commentID); err != nil {
 		return err
 	}
 
-	// Supprimer les signalements liés
+	// Supprime les signalements du commentaire
 	if _, err := database.DB.Exec("DELETE FROM comment_reports WHERE comment_id = ?", commentID); err != nil {
 		return err
 	}
 
-	// Supprimer le commentaire lui-même
+	// Supprime le commentaire
 	_, err := database.DB.Exec("DELETE FROM comments WHERE id = ?", commentID)
 	return err
 }
 
+// Récupère l'ID de l'auteur d'un commentaire
 func GetCommentAuthorID(commentID int) (string, error) {
 	var authorID string
 	err := database.DB.QueryRow("SELECT author_id FROM comments WHERE id = ?", commentID).Scan(&authorID)
 	return authorID, err
 }
 
+// Met à jour le contenu d'un commentaire
 func UpdateCommentContent(commentID int, newContent string) error {
 	_, err := database.DB.Exec("UPDATE comments SET content = ? WHERE id = ?", newContent, commentID)
 	return err
 }
 
+// Récupère un commentaire par son ID
 func GetCommentByID(commentID int) (Comment, error) {
 	var c Comment
 	err := database.DB.QueryRow(`

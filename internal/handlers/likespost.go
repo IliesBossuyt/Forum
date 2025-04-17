@@ -8,42 +8,45 @@ import (
 	"Forum/internal/security"
 )
 
-// 🔹 Handler pour liker/disliker un post
+// Gère les likes et dislikes sur les posts
 func LikePost(w http.ResponseWriter, r *http.Request) {
+	// Vérifie que la méthode est POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Récupérer userID et rôle depuis le middleware
+	// Récupère l'ID de l'utilisateur
 	userID, _ := r.Context().Value(security.ContextUserIDKey).(string)
 
+	// Structure pour le like/dislike
 	var input struct {
 		PostID int `json:"post_id"`
-		Value  int `json:"value"`
+		Value  int `json:"value"` // 1 pour like, -1 pour dislike
 	}
 
+	// Décode les données de la requête
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		http.Error(w, "Données invalides", http.StatusBadRequest)
 		return
 	}
 
-	// Appliquer le like/dislike
+	// Applique le like/dislike et récupère l'état
 	added, wasLike, err := models.ToggleLike(userID, input.PostID, input.Value)
 	if err != nil {
 		http.Error(w, "Erreur lors du like/dislike", http.StatusInternalServerError)
 		return
 	}
 
-	// Récupérer les nouvelles valeurs des likes/dislikes
+	// Récupère le nombre total de likes/dislikes
 	likes, dislikes, err := models.GetPostLikes(input.PostID)
 	if err != nil {
 		http.Error(w, "Erreur lors de la récupération des likes/dislikes", http.StatusInternalServerError)
 		return
 	}
 
-	// Créer une notification si ajout (like ou dislike)
+	// Crée une notification si l'auteur n'est pas l'utilisateur actuel
 	if added {
 		post, err := models.GetPostByID(input.PostID)
 		if err == nil && post.UserID != userID {
@@ -61,7 +64,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Renvoyer la réponse JSON
+	// Retourne la réponse avec les nouveaux totaux
 	response := map[string]interface{}{
 		"success":  true,
 		"likes":    likes,

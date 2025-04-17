@@ -1,4 +1,4 @@
-// Ouvrir le formulaire de création de post
+// Fonctions pour le formulaire de création de post
 function openCreatePostForm() {
     document.getElementById("create-post-form").style.display = "flex";
     setTimeout(() => {
@@ -15,7 +15,7 @@ function closeCreatePostForm() {
     }, 300);
 }
 
-// Like / Dislike d'un post
+// Fonction pour liker/disliker un post
 function likePost(postID, value) {
     fetch('/user/like', {
         method: 'POST',
@@ -34,7 +34,7 @@ function likePost(postID, value) {
     });
 }
 
-// Ouvrir le formulaire de suppression
+// Fonctions pour le formulaire de suppression
 function openDeleteForm(postID) {
     document.getElementById("delete-post-id").value = postID;
     document.getElementById("delete-form").style.display = "flex";
@@ -52,14 +52,14 @@ function closeDeleteForm() {
     }, 300);
 }
 
-// Confirme la suppression du post
+// Fonction pour confirmer la suppression d'un post
 function confirmDelete() {
     let postID = document.getElementById("delete-post-id").value;
     deletePost(postID);
     closeDeleteForm();
 }
 
-// Supprime le post
+// Fonction pour supprimer un post
 function deletePost(postID) {
     fetch('/user/delete-post', {
         method: 'POST',
@@ -84,6 +84,7 @@ function deletePost(postID) {
     });
 }
 
+// Fonctions pour éditer un post
 function editPost(postID) {
     let currentContent = document.getElementById(`content-${postID}`).innerText;
     document.getElementById("edit-content").value = currentContent;
@@ -100,10 +101,11 @@ function closeEditForm() {
     document.getElementById("edit-form").style.opacity = "0";
     document.querySelector("#edit-form .modal-content").style.transform = "scale(0.8)";
     setTimeout(() => {
-    document.getElementById("edit-form").style.display = "none";
+        document.getElementById("edit-form").style.display = "none";
     }, 300);
 }
 
+// Fonction pour soumettre l'édition d'un post
 function submitEdit() {
     let postID = document.getElementById("edit-post-id").value;
     let newContent = document.getElementById("edit-content").value;
@@ -125,16 +127,16 @@ function submitEdit() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Mise à jour du texte du post
+            // Met à jour le contenu du post
             document.getElementById(`content-${postID}`).innerText = newContent;
 
-            // Gestion de l'image
+            // Gère la mise à jour de l'image
             if (data.imageUpdated) {
                 let imgContainer = document.querySelector(`#post-${postID} .post-image`);
                 let imgElement = imgContainer ? imgContainer.querySelector('img') : null;
                 
-            if (!imgElement) {
-                    // Créer le conteneur d'image s'il n'existe pas
+                if (!imgElement) {
+                    // Crée le conteneur d'image s'il n'existe pas
                     if (!imgContainer) {
                         imgContainer = document.createElement('div');
                         imgContainer.className = 'post-image';
@@ -142,15 +144,15 @@ function submitEdit() {
                         contentElement.parentNode.insertBefore(imgContainer, contentElement.nextSibling);
                     }
                     
-                    // Créer l'élément image
+                    // Crée l'élément image
                     imgElement = document.createElement('img');
-                imgElement.alt = "Image postée";
-                imgElement.onclick = function() { openModal(`/entry/image/${postID}`); };
+                    imgElement.alt = "Image postée";
+                    imgElement.onclick = function() { openModal(`/entry/image/${postID}`); };
                     imgContainer.appendChild(imgElement);
                 }
                 
-                // Mettre à jour l'image avec un timestamp unique
-            imgElement.src = `/entry/image/${postID}?t=${new Date().getTime()}`;
+                // Met à jour l'image avec un timestamp unique
+                imgElement.src = `/entry/image/${postID}?t=${new Date().getTime()}`;
             } 
             
             if (data.imageDeleted) {
@@ -172,6 +174,7 @@ function submitEdit() {
     });
 }
 
+// Fonctions pour la modale d'image
 function openModal(imageSrc) {
     let modal = document.getElementById("imageModal");
     let modalImg = document.getElementById("modalContent");
@@ -195,7 +198,7 @@ function closeModal() {
     }, 300);
 }
 
-// Fonction modifiée pour ouvrir le modal de signalement au lieu du prompt
+// Fonctions pour le signalement de post
 function reportPost(postID) {
     document.getElementById("report-post-id").value = postID;
     document.getElementById("report-reason").value = "";
@@ -214,6 +217,7 @@ function closeReportForm() {
     }, 300);
 }
 
+// Fonction pour soumettre un signalement
 function submitReport() {
     const postID = document.getElementById("report-post-id").value;
     const reason = document.getElementById("report-reason").value.trim();
@@ -240,6 +244,7 @@ function submitReport() {
     .catch(() => showNotification("Erreur réseau", "error"));
 }
 
+// Fonction pour afficher/masquer les commentaires
 function toggleComments(postID) {
     const section = document.getElementById("comments-" + postID);
     if (section.style.display === "none") {
@@ -249,6 +254,7 @@ function toggleComments(postID) {
     }
 }
 
+// Fonction pour soumettre un commentaire
 function submitComment(postID) {
     const textarea = document.getElementById("comment-content-" + postID);
     const content = textarea.value.trim();
@@ -270,20 +276,21 @@ function submitComment(postID) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Recharger la page pour voir le nouveau commentaire
+            // Recharge la page pour voir le nouveau commentaire
             setTimeout(() => {
                 location.reload();
             }, 1000);
-    } else {
+        } else {
             showNotification(data.message || "Erreur lors de l'ajout du commentaire", "error");
-    }
-})
+        }
+    })
     .catch(error => {
         console.error("Erreur:", error);
         showNotification("Erreur réseau lors de l'ajout du commentaire", "error");
     });
 }
 
+// Fonction pour liker/disliker un commentaire
 function likeComment(commentID, value) {
     fetch('/user/like-comment', {
         method: 'POST',
@@ -302,6 +309,7 @@ function likeComment(commentID, value) {
     });
 }
 
+// Fonctions pour le signalement de commentaire
 function reportComment(commentID) {
     document.getElementById("report-comment-id").value = commentID;
     document.getElementById("report-comment-reason").value = "";
@@ -320,6 +328,7 @@ function closeReportCommentForm() {
     }, 300);
 }
 
+// Fonction pour soumettre un signalement de commentaire
 function submitCommentReport() {
     const commentID = document.getElementById("report-comment-id").value;
     const reason = document.getElementById("report-comment-reason").value.trim();
@@ -341,6 +350,7 @@ function submitCommentReport() {
     .catch(() => showNotification("Erreur réseau", "error"));
 }
 
+// Fonctions pour l'édition de commentaire
 function editComment(commentID, content) {
     document.getElementById("edit-comment-content").value = content;
     document.getElementById("edit-comment-id").value = commentID;
@@ -355,10 +365,11 @@ function closeEditCommentForm() {
     document.getElementById("edit-comment-form").style.opacity = "0";
     document.querySelector("#edit-comment-form .modal-content").style.transform = "scale(0.8)";
     setTimeout(() => {
-    document.getElementById("edit-comment-form").style.display = "none";
+        document.getElementById("edit-comment-form").style.display = "none";
     }, 300);
 }
 
+// Fonction pour soumettre l'édition d'un commentaire
 function submitEditComment() {
     const commentID = document.getElementById("edit-comment-id").value;
     const content = document.getElementById("edit-comment-content").value.trim();
@@ -376,7 +387,7 @@ function submitEditComment() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // Mise à jour du contenu du commentaire dans le DOM
+            // Met à jour le contenu du commentaire dans le DOM
             const commentContentElement = document.querySelector(`#comment-${commentID} .comment-content`);
             if (commentContentElement) {
                 commentContentElement.textContent = content;
@@ -392,6 +403,7 @@ function submitEditComment() {
     });
 }
 
+// Fonctions pour la suppression de commentaire
 function deleteComment(commentID) {
     document.getElementById("delete-comment-id").value = commentID;
     document.getElementById("delete-comment-form").style.display = "flex";
@@ -409,6 +421,7 @@ function closeDeleteCommentForm() {
     }, 300);
 }
 
+// Fonction pour confirmer la suppression d'un commentaire
 function confirmDeleteComment() {
     const commentID = document.getElementById("delete-comment-id").value;
     
@@ -420,7 +433,7 @@ function confirmDeleteComment() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // Supprimer le commentaire du DOM
+            // Supprime le commentaire du DOM
             const commentElement = document.getElementById(`comment-${commentID}`);
             if (commentElement) {
                 commentElement.remove();
@@ -436,7 +449,7 @@ function confirmDeleteComment() {
     });
 }
 
-// Notifications
+// Fonctions pour la gestion des notifications
 function toggleNotifMenu() {
     const dropdown = document.getElementById("notifDropdown");
     if (dropdown.style.display === "none") {
@@ -447,6 +460,7 @@ function toggleNotifMenu() {
     }
 }
 
+// Fonction pour récupérer les notifications
 function fetchNotifications() {
     fetch("/user/notifications")
         .then(res => {
@@ -479,10 +493,10 @@ function fetchNotifications() {
                     li.classList.add("unseen");
                 }
                 
-                // Utiliser directement le message fourni par le serveur
+                // Utilise le message fourni par le serveur
                 const message = notif.message || "Nouvelle notification";
                 
-                // Formater la date ou utiliser une valeur par défaut
+                // Formate la date
                 let dateStr = "Date inconnue";
                 try {
                     if (notif.created_at) {
@@ -500,7 +514,7 @@ function fetchNotifications() {
                 list.appendChild(li);
             });
             
-            // Mettre à jour le compteur de notifications non vues
+            // Met à jour le compteur de notifications non vues
             const unseenCount = data.filter(notif => !notif.seen).length;
             const countElement = document.getElementById("notifCount");
             if (unseenCount > 0) {
@@ -515,7 +529,7 @@ function fetchNotifications() {
             const list = document.getElementById("notifList");
             list.innerHTML = "<li>Erreur lors du chargement des notifications.</li>";
             
-            // S'assurer que le compteur est masqué en cas d'erreur
+            // Masque le compteur en cas d'erreur
             const countElement = document.getElementById("notifCount");
             if (countElement) {
                 countElement.style.display = "none";
@@ -523,13 +537,14 @@ function fetchNotifications() {
         });
 }
 
+// Fonction pour marquer les notifications comme lues
 function markNotificationsRead() {
     fetch("/user/notifications/mark-read", {
         method: "POST",
         headers: { "Content-Type": "application/json" }
     })
     .then(() => {
-        // Enlever la classe "unseen" de tous les éléments
+        // Supprime la classe "unseen" de tous les éléments
         document.querySelectorAll("#notifList li").forEach(li => {
             li.classList.remove("unseen");
         });
@@ -537,26 +552,25 @@ function markNotificationsRead() {
     });
 }
 
+// Fonction pour supprimer toutes les notifications
 function deleteAllNotifications() {
     fetch("/user/notifications/delete-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" }
     })
     .then(() => {
-        // après suppression, on remplace manuellement la liste
+        // Remplace la liste après suppression
         document.getElementById("notifList").innerHTML = "<li>Aucune notification.</li>";
         document.getElementById("notifCount").style.display = "none";
     });
 }
 
+// Charge les notifications au chargement de la page
 document.addEventListener("DOMContentLoaded", () => {
     fetchNotifications();
 });
 
-
-
-
-// Fonction de gestion des notifications
+// Fonctions pour les notifications
 function showNotification(message, type = 'success', duration = 5000) {
     const container = document.getElementById('notification-container');
     const notification = document.createElement('div');
@@ -572,7 +586,7 @@ function showNotification(message, type = 'success', duration = 5000) {
 
     container.appendChild(notification);
 
-    // Supprimer automatiquement après la durée spécifiée
+    // Supprime automatiquement la notification après la durée spécifiée
     setTimeout(() => {
         removeNotification(id);
     }, duration);
@@ -588,7 +602,7 @@ function removeNotification(id) {
     }, 300);
 }
 
-// Pour compatibilité, mapper l'ancienne fonction showToast vers la nouvelle
+// Fonction de compatibilité pour l'ancien système de notifications
 function showToast(message, type = "info") {
     showNotification(message, type);
 }
